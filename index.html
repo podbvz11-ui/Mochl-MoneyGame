@@ -260,6 +260,35 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .du-pair.draw .du-mid::before{content:'무승부';font-weight:900;color:var(--muted)}
 @keyframes punch{0%{transform:none}40%{transform:translateX(var(--px,24px)) scale(1.12)}100%{transform:none}}
 .du-s.r{--px:-24px}
+/* react */
+.rx-pad{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:280px;margin-top:6px;border:none;border-radius:20px;color:#fff;font:inherit;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;transition:background .06s}
+.rx-pad.wait{background:#2a2f3d}
+.rx-pad.count{background:#3b4255}
+.rx-pad.hold{background:#b3263a}
+.rx-pad.go{background:#1fb35a;box-shadow:0 0 40px rgba(31,179,90,.6)}
+.rx-pad.fs{background:#5a1d24}
+.rx-pad.done{background:#1d3a5a}
+.rx-big{font-size:64px;font-weight:900;line-height:1.1}
+.rx-big small{font-size:28px}
+.rx-pad.count .rx-big{animation:capPop .5s ease-out}
+.rx-sub{font-size:16px;margin-top:8px;opacity:.9}
+.rx-ppl{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;justify-content:center}
+.rx-p{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--card2)}
+.rx-p.ok{outline:1px solid var(--green)}.rx-p.fs{outline:1px solid var(--red);opacity:.7}
+.rx-board{display:grid;gap:6px;margin-top:8px}
+.rx-row{display:grid;grid-template-columns:120px 1fr 90px;gap:8px;align-items:center;padding:6px 10px;border-radius:10px;background:var(--card2);opacity:0;transform:translateX(-20px);transition:all .35s;position:relative}
+.rx-row.in{opacity:1;transform:none}
+.rx-row .rx-n{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rx-row b{text-align:right;font-variant-numeric:tabular-nums}
+.rx-bar{height:14px;border-radius:99px;background:#11151d;overflow:hidden}
+.rx-bar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#1fb35a,#9be15d);transition:width .6s ease-out}
+.rx-row.in .rx-bar i{width:var(--w)}
+.rx-row.fs .rx-bar i,.rx-row.bad .rx-bar i{background:repeating-linear-gradient(45deg,#5a1d24 0 8px,#3a1418 8px 16px)}
+.rx-row.none .rx-bar i{background:#2a2f3d}
+.rx-row.fs b,.rx-row.bad b,.rx-row.none b{color:var(--red);font-size:13px}
+.rx-row.win{outline:2px solid var(--gold);background:#3a3110}
+.rx-row.win b{color:var(--gold)}
+@media(max-width:520px){.rx-row{grid-template-columns:86px 1fr 70px}.rx-pad{height:240px}.rx-big{font-size:52px}}
 /* bomb */
 .bm-msg{min-height:44px}
 .bm-t{text-align:center;font-size:17px;padding:8px 0}
@@ -520,6 +549,7 @@ const GAMES = {
   ,plinko:{ name:'플링코', icon:'🌻', stk:'love', desc:'해바라기씨가 핀 사이를 튕기며 떨어져 9칸 중 하나에 들어가요. 가운데는 낮은 배수, 양끝은 최대 10배! 씨앗 1개당 금액과 개수를 정해서 떨어뜨려요.' }
   ,mines:{ name:'지뢰찾기 서바이벌', icon:'💣', stk:'shock', desc:'5×5 보드에 지뢰 5개! 순서대로 칸을 하나씩 열어요. 지뢰를 밟으면 탈락, 최후의 1인이 판돈을 독식해요. 안전 칸이 다 열려도 2명 이상 남으면 새 보드로 결승 라운드!' }
   ,bomb:{ name:'폭탄 돌리기', icon:'💥', stk:'gloom', desc:'해바라기씨 폭탄을 받으면 2초 뒤부터 다른 햄스터에게 넘길 수 있어요. 폭탄은 8~18초 사이 언제 터질지 몰라요! 터질 때 들고 있으면 탈락, 최후의 1인이 판돈을 독식해요. (3명 이상)' }
+  ,react:{ name:'반응속도 대결', icon:'⚡', stk:'excited', desc:'3초 카운트다운 후 2~5초 기다리다 초록 신호가 뜨면 최대한 빨리 눌러요! 신호 전에 누르면 부정 출발 실격. 가장 빠른 사람이 판돈을 가져가요.' }
 };
 // 경주 캐릭터 20종 (이미지 순서와 같음)
 const AVATAR_NAMES=['햄찌','레드','블루','그린','옐로','리본','신사','셰프','공룡','천사','마법사','탐정','기사','스포츠','시크','딸기','꿀벌','마도로스','털모자','임금님'];
@@ -619,6 +649,7 @@ function validate(type,d,params){
     case 'pd': return (d.c==='C'||d.c==='B')?{c:d.c}:null;
     case 'race': { const h=Math.floor(Number(d.h)), a=toAmt(d.a); return (h>=0&&h<RN&&a!==null&&a>0)?{h,a}:null; }
     case 'duel': { const a=toAmt(d.a); return (HANDS[d.r]&&a!==null)?{r:d.r,a}:null; }
+    case 'react': { if(d.fs) return {fs:1}; const ms=Math.round(Number(d.ms)); return (ms>=0&&ms<=10000)?{ms}:null; }
     case 'bomb': { const t=d&&typeof d.to==='string'?d.to:null; return t?{to:t}:null; }
     case 'mines': { const c=Math.floor(Number(d.cell)); return (c>=0&&c<25)?{cell:c}:null; }
     case 'plinko': { const a=toAmt(d.a), c=Math.floor(Number(d.c)); return (a!==null&&a>0&&c>=1&&c<=PK_MAXBALL)?{a,c}:null; }
@@ -750,6 +781,20 @@ const RACE_RTP=0.95, RACE_MAX=999; // 경마: 배당 = 0.95 ÷ 우승확률 (상
 const PK_ROWS=8, PK_MULT=[10,3,1.3,0.7,0.35,0.7,1.3,3,10],  // 플링코 회수율 약 95.2%
   PK_MAXBALL=10;
 const pkSlot=path=>{ let k=0; for(let i=0;i<PK_ROWS;i++) if(path>>i&1) k++; return k; };
+// 반응속도: 판정 기준
+const REACT_TIE=10, REACT_MIN=100, REACT_WIN=2500;   // 동률 허용(ms) · 비정상 입력 기준(ms) · 신호 후 입력 시간(ms)
+function reactSettle(fee,players,subs){
+  const rows=players.map(id=>{ const s=subs[id]; let st='none', ms=null;
+    if(s){ if(s.fs) st='fs'; else if(s.early) st='bad'; else if(s.ms<REACT_MIN) st='bad'; else if(s.ms<=REACT_WIN+500){ st='ok'; ms=s.ms; } }
+    return { id, st, ms }; });
+  const ok=rows.filter(r=>r.st==='ok'), deltas={};
+  if(!ok.length) return { deltas, rows, winners:[] };
+  const best=Math.min(...ok.map(r=>r.ms)), winners=ok.filter(r=>r.ms<=best+REACT_TIE).map(r=>r.id);
+  const pot=fee*players.length, share=Math.floor(pot/winners.length);
+  players.forEach(id=>{ const dv=(winners.includes(id)?share:0)-fee; if(dv) deltas[id]=dv; });
+  rows.sort((a,b)=>(a.st==='ok'?0:1)-(b.st==='ok'?0:1)||(a.ms??1e9)-(b.ms??1e9));
+  return { deltas, rows, winners };
+}
 function minesSettle(fee,players,alive){
   const deltas={}, dead=players.filter(id=>!alive.includes(id));
   if(!alive.length) return deltas;
@@ -896,7 +941,7 @@ function hStartRound(type){
   const med=stakeBase(online.map(id=>st.players[id].money)), base=niceAmt(med*(st.settings.stakePct||10)/100);
   params.base=base; params.med=niceAmt(med);
   if(type==='unique') params.fee=base;
-  if(type==='mines'||type==='bomb') params.fee=base;
+  if(type==='mines'||type==='bomb'||type==='react') params.fee=base;
   if(type==='auction') params.m=niceAmt(med);
   if(type==='pd'){ params.stake=base; params.pairs=makePairs(online); }
   if(type==='duel') params.pairs=makePairs(online);
@@ -908,6 +953,7 @@ function hStartRound(type){
   st.game={ type, params, eligible:online, submitted:{}, deadline:Date.now()+secs*1000 };
   if(type==='roulette'||type==='dice'||type==='lotto') st.game.stats={};
   st.result=null; HOST.subs={};
+  if(type==='react'){ rInit(st.game); st.phase='play'; changed(); return; }
   if(type==='bomb'){ bInit(st.game); st.phase='play'; changed(); return; }
   if(type==='mines'){ mInit(st.game); st.phase='play'; changed(); return; }
   st.phase='play'; changed();
@@ -941,6 +987,34 @@ function createSingle(name,botCount){
   setBots(botCount);
   ME.pid=pid; ME.code=state.code;
   changed();
+}
+/* ---- 반응속도 대결 ----
+   신호 시각은 방장만 알고 있다가, 시각이 되면 '신호!' 상태를 모두에게 보냄.
+   반응속도는 각 기기에서 '신호가 화면에 그려진 순간 → 누른 순간'으로 측정 → 통신 지연과 무관. */
+function rInit(g){
+  const st=HOST.state; g.players=g.eligible.slice(); g.sig=false; g.cnt=0; g.deadline=Date.now()+3600e3;
+  g.t0=Date.now()+700;                                  // 카운트다운 시작 (3초)
+  HOST.subs.__sig=g.t0+3000+2000+Math.floor(Math.random()*3000);   // 비밀: 신호 시각 (대기 2~5초)
+  const r=st.round;
+  setTimeout(()=>{ const s2=HOST.state, g2=s2.game; if(s2.round!==r||s2.phase!=='play'||!g2||g2.type!=='react') return;
+    g2.sig=true; g2.sigAt=Date.now(); changed();
+    g2.players.filter(id=>s2.players[id]&&s2.players[id].bot&&!HOST.subs[id]).forEach(id=>{
+      const fs=false, ms=Math.round(190+Math.pow(Math.random(),1.7)*330);
+      setTimeout(()=>{ if(HOST.state.round===r&&HOST.state.phase==='play') rSubmit(id,fs?{fs:1}:{ms}); },fs?0:ms+40); });
+    setTimeout(()=>{ if(HOST.state.round===r&&HOST.state.phase==='play') hClose(); },REACT_WIN+900);
+  },HOST.subs.__sig-Date.now());
+  // 컴퓨터 부정 출발 (신호 전)
+  g.players.filter(id=>st.players[id]&&st.players[id].bot).forEach(id=>{ if(Math.random()<0.06) setTimeout(()=>{ if(HOST.state.round===r&&HOST.state.phase==='play'&&!HOST.state.game.sig) rSubmit(id,{fs:1}); },g.t0+3000+Math.random()*1800-Date.now()); });
+}
+function rSubmit(pid,data){
+  const st=HOST.state, g=st.game; if(!g||g.type!=='react'||!g.players.includes(pid)||HOST.subs[pid]) return;
+  const c=validate('react',data); if(!c) return;
+  if(!c.fs&&!g.sig) c.early=1;                       // 방장 신호보다 먼저 도착한 기록 → 비정상 입력
+  HOST.subs[pid]={...c,ts:Date.now()}; g.submitted[pid]=true; g.cnt++;
+  if(c.fs) (g.fsList=g.fsList||[]).push(pid);
+  changed();
+  const need=g.players.filter(id=>st.players[id]&&st.players[id].online);
+  if(g.sig&&need.every(id=>HOST.subs[id])){ const r=st.round; setTimeout(()=>{ if(HOST.state.round===r&&HOST.state.phase==='play') hClose(); },700); }
 }
 /* ---- 폭탄 돌리기 (실시간) ----
    판정 규칙: 폭발 시각은 방장만 알고 있음. 방장 시계로 폭발 시각 '이전'에 방장에게 도착한 전달만 유효.
@@ -1028,6 +1102,7 @@ function mPick(pid,cell,auto){
 }
 function hSubmit(pid,data){
   const st=HOST.state; if(st.phase!=='play') return;
+  if(st.game&&st.game.type==='react'){ rSubmit(pid,data); return; }
   if(st.game&&st.game.type==='bomb'){ const c=validate('bomb',data); if(c) bPass(pid,c.to); return; }
   if(st.game&&st.game.type==='mines'){ const c=validate('mines',data); if(c) mPick(pid,c.cell,false); return; }
   const g=st.game; if(!g.eligible.includes(pid)||g.submitted[pid]) return;
@@ -1040,13 +1115,15 @@ function hSubmit(pid,data){
   if(g.type==='roulette') for(const [k,b] of Object.entries(clean.bets)){ const key=k+':'+b.v; g.stats[key]=(g.stats[key]||0)+1; } changed(); checkAllIn();
 }
 function checkAllIn(){
-  const st=HOST.state; if(st.phase!=='play'||st.game.type==='mines'||st.game.type==='bomb') return;
+  const st=HOST.state; if(st.phase!=='play'||st.game.type==='mines'||st.game.type==='bomb'||st.game.type==='react') return;
   const g=st.game, need=g.eligible.filter(id=>st.players[id]&&st.players[id].online);
   if(need.length&&need.every(id=>g.submitted[id])){ const r=st.round; setTimeout(()=>{ if(HOST.state.round===r) hClose(); },900); }
 }
 function hClose(){
   const st=HOST.state; if(st.phase!=='play') return;
-  const g=st.game, res=g.type==='bomb'
+  const g=st.game, res=g.type==='react'
+    ?(()=>{ const R=reactSettle(g.params.fee,g.players.filter(id=>st.players[id]),HOST.subs); return { deltas:R.deltas, detail:{ rows:R.rows, winners:R.winners, fee:g.params.fee, n:g.players.length } }; })()
+    :g.type==='bomb'
     ?{ deltas:minesSettle(g.params.fee,g.order.filter(id=>st.players[id]),g.alive.filter(id=>st.players[id])),
        detail:{ order:g.order, alive:g.alive.slice(), elim:g.elim, rounds:g.roundNo, passes:g.passes, fee:g.params.fee } }
     :g.type==='mines'
@@ -1226,12 +1303,13 @@ function updateDynamic(){
     if(sc) sc.textContent=(g.type==='mines'||g.type==='bomb')?`생존 ${g.alive.length}/${g.order.length}명`:`${cnt}/${g.eligible.length}명 제출`;
     if(g.type==='mines') mUpdate();
     if(g.type==='bomb') bUpdate();
+    if(g.type==='react') rUpdate();
     if(g.type==='roulette'||g.type==='dice'||g.type==='lotto') document.querySelectorAll('[data-ck]').forEach(e=>{ const c=(g.stats||{})[e.dataset.ck]; e.textContent=c?c+'명':''; });
     tick();
   }
 }
 function tick(){
-  if(S&&S.phase==='play'&&S.game.type==='bomb') return;
+  if(S&&S.phase==='play'&&(S.game.type==='bomb'||S.game.type==='react')) return;
   if(S&&S.phase==='play'&&S.game.type==='mines') return mTick();
   if(!S||S.phase!=='play'||S.game.type==='shell') return; const el=$('#timer'); if(!el) return;
   const rem=Math.max(0,Math.ceil((S.game.deadline-(Date.now()-clockOffset))/1000));
@@ -1300,6 +1378,7 @@ function describeSub(type,d){
   return '';
 }
 function playHTML(){
+  if(S.game.type==='react') return reactPlayHTML();
   if(S.game.type==='bomb') return bombPlayHTML();
   if(S.game.type==='mines') return minesPlayHTML();
   const g=S.game, G=GAMES[g.type], elig=g.eligible.includes(ME.pid), done=mySub.round===S.round;
@@ -1397,7 +1476,7 @@ function resultHTML(){
   const ln=Object.entries(r.loans||{});
   const loanHTML=ln.length?`<div class="loanbox">${stk('cryPuddle','mstk')}<div><b>💳 파산!</b> 보유금을 모두 잃어 빚을 졌어요<div class="deltas">${ln.map(([id,a])=>`<span class="pill">${nameOf(id)} <b class="down">빚 +${fmt(a)}</b></span>`).join('')}</div></div></div>`:'';
   return `<div class="ghead"><div class="gicon">${gimg(G)}</div><div><div class="gname">라운드 ${r.round} 결과 · ${G.name}</div></div></div>
-    <div id="rbody">${resultBody(r)}</div><div id="reveal" class="hidden">${r.type==='race'?raceReveal(r.detail):r.type==='roulette'?rlReveal(r.detail):r.type==='dice'?diceReveal(r.detail):r.type==='shell'?shellReveal(r.detail):r.type==='lotto'?lottoReveal(r.detail):r.type==='plinko'?pkReveal(r.detail):r.type==='mines'?minesReveal(r.detail):r.type==='bomb'?bombReveal(r.detail):`<div class="sec">📋 결과 요약</div>${resultBodyOld(r)}`}${loanHTML}${deltas}${next}</div>`;
+    <div id="rbody">${resultBody(r)}</div><div id="reveal" class="hidden">${r.type==='race'?raceReveal(r.detail):r.type==='roulette'?rlReveal(r.detail):r.type==='dice'?diceReveal(r.detail):r.type==='shell'?shellReveal(r.detail):r.type==='lotto'?lottoReveal(r.detail):r.type==='plinko'?pkReveal(r.detail):r.type==='mines'?minesReveal(r.detail):r.type==='bomb'?bombReveal(r.detail):r.type==='react'?reactReveal(r.detail):`<div class="sec">📋 결과 요약</div>${resultBodyOld(r)}`}${loanHTML}${deltas}${next}</div>`;
 }
 const SHOW_TYPES=['unique','auction','pd','duel'];
 function resultBody(r){ return SHOW_TYPES.includes(r.type)?showStage(r):resultBodyOld(r); }
@@ -1442,6 +1521,7 @@ function resultBodyOld(r){
   if(r.type==='lotto') return lottoStageHTML(r.detail);
   if(r.type==='plinko') return pkStageHTML(r.detail);
   if(r.type==='mines'||r.type==='bomb') return `<div class="showcap" id="showcap">🏁 게임 종료!</div>`;
+  if(r.type==='react') return reactStageHTML(r.detail);
   if(r.type==='duel'){
     const face=dv=>dv>0?'excited':dv<0?'cry':'shrug';
     const side=(h,a,m)=>`${HANDS[h]} · ${fmt(a)}원${m?' <span class="muted">(미제출)</span>':''}`;
@@ -1469,6 +1549,7 @@ function afterStage(){
   if(S.phase==='result'&&S.result.type==='plinko') runPlinko();
   if(S.phase==='result'&&S.result.type==='mines') runMinesResult();
   if(S.phase==='result'&&S.result.type==='bomb') runMinesResult();
+  if(S.phase==='result'&&S.result.type==='react') runReactResult();
   if(S.phase==='play'&&S.game.type==='shell') runShellPlay();
   if(S.phase==='play'&&S.game.type==='plinko'&&$('#pktotal')){ SEL.pc='1'; pkTotal(); const a=$('#amt'); if(a) a.oninput=pkTotal; }
   if(S.phase==='play'&&S.game.type==='lotto'&&$('#lttotal')){ SEL.ln=[]; lottoTotal(); const a=$('#amt'); if(a) a.oninput=lottoTotal; }
@@ -1659,6 +1740,77 @@ function runRace(){
   }
   requestAnimationFrame(frame);
 }
+/* ===== 반응속도 대결 화면 ===== */
+let R_ME=null, R_SIGT=null, R_LOOP=null;
+function reactPlayHTML(){
+  const g=S.game, G=GAMES.react, n=g.players.length; R_ME={round:S.round,done:false,res:null}; R_SIGT=null;
+  return `<div class="ghead"><div class="gicon">${gimg(G)}</div><div><div class="gname">라운드 ${S.round} · ${G.name}</div>
+      <div class="gdesc">참가비 <b>${fmt(g.params.fee)}원</b> × ${n}명 = 판돈 <b class="up">${fmt(g.params.fee*n)}원</b><br>
+      <span class="muted">⏱ 판정: 각자 기기에서 <b>신호가 화면에 뜬 순간부터</b> 재요(통신 지연 영향 없음) · ${REACT_TIE}ms 이내는 동률로 판돈 나눔 · ${REACT_MIN}ms 미만은 비정상 입력으로 무효 · 신호 후 ${REACT_WIN/1000}초 안에 안 누르면 무반응</span></div></div></div>
+    <div class="timerbar"><div class="timer" id="timer">준비</div><div class="muted" id="subcount"></div></div>
+    <button class="rx-pad wait" id="rpad"><div class="rx-big" id="rbig">준비</div><div class="rx-sub" id="rsub">초록색이 되면 바로 누르세요!</div></button>
+    <div class="muted rl-tip" style="text-align:center">화면을 누르거나 <b>스페이스바</b>를 눌러요</div>
+    <div class="rx-ppl" id="rppl"></div>
+    ${ME.isHost?`<button class="btn ghost" id="closeBtn">⏹ 지금 마감하기</button>`:''}`;
+}
+function rPress(ev){
+  const g=S.game; if(!g||g.type!=='react'||!R_ME||R_ME.round!==S.round||R_ME.done) return;
+  if(!g.players.includes(ME.pid)) return;
+  const t=(ev&&ev.timeStamp)?ev.timeStamp:performance.now();
+  let data;
+  if(!g.sig||R_SIGT===null){ data={fs:1}; R_ME.res={fs:1}; }
+  else { const ms=Math.max(0,Math.round(t-R_SIGT)); data={ms}; R_ME.res={ms}; }
+  R_ME.done=true;
+  if(ME.isHost) hSubmit(ME.pid,data); else if(CL&&CL.conn&&CL.conn.open) CL.conn.send({t:'act',round:S.round,data}); else toast('연결이 끊겨 기록을 보내지 못했어요');
+  rDraw();
+}
+function rDraw(){
+  const g=S.game, pad=$('#rpad'), big=$('#rbig'), sub=$('#rsub'); if(!pad) return;
+  const now=Date.now()-clockOffset, cd=g.t0+3000-now;
+  let cls, b, sm;
+  if(R_ME&&R_ME.done&&R_ME.res){ if(R_ME.res.fs){ cls='fs'; b='부정 출발!'; sm='신호 전에 눌러서 이번 판은 실격이에요 😭'; }
+    else { cls='done'; b=`${R_ME.res.ms}<small>ms</small>`; sm=R_ME.res.ms<REACT_MIN?'너무 빨라요… 비정상 입력으로 처리될 수 있어요':'기록 완료! 다른 사람을 기다리는 중…'; } }
+  else if(!g.players.includes(ME.pid)){ cls='wait'; b='관전 중'; sm='이번 판은 시작 후에 들어와서 구경만 해요'; }
+  else if(g.sig){ cls='go'; b='지금!'; sm='누르세요!!'; }
+  else if(now<g.t0){ cls='wait'; b='준비'; sm='곧 카운트다운이 시작돼요'; }
+  else if(cd>0){ cls='count'; b=String(Math.ceil(cd/1000)); sm='초록색이 되면 바로 누르세요!'; }
+  else { cls='hold'; b='기다리세요…'; sm='아직 누르면 안 돼요!'; }
+  pad.className='rx-pad '+cls; big.innerHTML=b; sub.textContent=sm;
+  const tm=$('#timer'); if(tm) tm.textContent=g.sig?'신호!':cd>0&&now>=g.t0?Math.ceil(cd/1000)+'':'대기';
+}
+function rUpdate(){
+  const g=S.game, pad=$('#rpad'); if(!pad) return;
+  if(!pad.dataset.bound){ pad.dataset.bound=1; pad.addEventListener('pointerdown',e=>{ e.preventDefault(); rPress(e); });
+    window.onkeydown=e=>{ if(e.code==='Space'&&S&&S.phase==='play'&&S.game.type==='react'){ e.preventDefault(); rPress(e); } }; }
+  // 신호 상태가 오면 → 초록으로 그린 뒤, 실제로 화면에 그려진 시점(다음 프레임)부터 측정 시작
+  if(g.sig&&R_SIGT===null&&!(R_ME&&R_ME.done)){ R_SIGT=-1; rDraw(); requestAnimationFrame(()=>requestAnimationFrame(t=>{ if(R_SIGT===-1) R_SIGT=performance.now(); })); }
+  rDraw();
+  const pp=$('#rppl'); if(pp) pp.innerHTML=g.players.map(id=>{ const sb=g.submitted[id], fs=(g.fsList||[]).includes(id);
+    return `<span class="rx-p ${fs?'fs':sb?'ok':''}">${avTag(id)}${plainName(id)}${fs?' ❌':sb?' ✔':''}</span>`; }).join('');
+  const sc=$('#subcount'); if(sc) sc.textContent=`${g.cnt||0}/${g.players.length}명 입력`;
+  if(!R_LOOP){ const key=lastKey; const f=()=>{ if(lastKey!==key||!S||S.phase!=='play'||S.game.type!=='react'){ R_LOOP=null; return; } if(!S.game.sig) rDraw(); R_LOOP=requestAnimationFrame(f); }; R_LOOP=requestAnimationFrame(f); }
+}
+function rLabel(r){ return r.st==='ok'?`${r.ms}ms`:r.st==='fs'?'부정 출발':r.st==='bad'?'비정상 입력':'무반응'; }
+function reactStageHTML(d){
+  const ok=d.rows.filter(r=>r.st==='ok'), mx=Math.max(400,...ok.map(r=>r.ms));
+  return `<div class="showcap" id="showcap">⚡ 기록을 공개합니다!</div>
+    <div class="rx-board">${d.rows.slice().reverse().map((r,i)=>`<div class="rx-row ${r.st} ${d.winners.includes(r.id)?'win':''}" style="--w:${r.st==='ok'?Math.max(6,r.ms/mx*100):100}%">
+      <span class="rx-n">${avTag(r.id)}${plainName(r.id)}</span><div class="rx-bar"><i></i></div><b>${rLabel(r)}</b></div>`).join('')}</div>${SKIP}`;
+}
+function runReactResult(){
+  const d=S.result.detail, sh=makeShow(), rows=[...document.querySelectorAll('.rx-row')];
+  sh.onEnd=()=>rows.forEach(r=>r.classList.add('in'));
+  rows.forEach((r,i)=>sh.at(400+i*Math.min(500,3000/rows.length),()=>{ r.classList.add('in'); if(r.classList.contains('win')){ burst(r,['⚡','✨','💰'],12); } }));
+  const w=d.winners;
+  sh.at(400+rows.length*Math.min(500,3000/rows.length)+200,()=>sh.cap(w.length?`⚡ 1등 ${w.map(plainName).join(', ')}! ${d.rows.find(r=>r.id===w[0]).ms}ms${w.length>1?' (동률)':''}`:'😱 유효한 기록이 없어요! 참가비를 돌려드려요',w.length?'good':'bad'));
+  sh.at(400+rows.length*Math.min(500,3000/rows.length)+2000,()=>sh.end());
+}
+function reactReveal(d){
+  const pot=d.fee*d.n, w=d.winners;
+  return `<div class="announce">${w.length?stk('sparkle','rx bounce'):stk('shrug')}${w.length?`가장 빠른 손<big>${w.map(id=>nameOf(id)).join(' · ')}</big>${d.rows.find(r=>r.id===w[0]).ms}ms · 판돈 <b class="up">${fmt(pot)}원</b>${w.length>1?' 나눠 가짐 (10ms 이내 동률)':' 획득!'}`:'유효한 기록이 없어 참가비를 모두 돌려드렸어요'}</div>
+    <div class="sec">기록 순위</div><div class="list">${d.rows.map((r,i)=>`<div class="li ${w.includes(r.id)?'win':''}"><span>${r.st==='ok'?(i+1)+'위':'—'} · ${nameOf(r.id)}</span><b class="${r.st==='ok'?'':'down'}">${rLabel(r)}</b></div>`).join('')}</div>`;
+}
+
 /* ===== 폭탄 돌리기 화면 ===== */
 const BOMB_SVG=`<svg viewBox="0 0 64 80" class="bsvg"><path d="M40 14 Q50 2 58 8" stroke="#8a6a3a" stroke-width="3" fill="none"/><g class="spark"><circle cx="58" cy="8" r="5" fill="#ffd34d"/><circle cx="58" cy="8" r="2.5" fill="#fff"/></g>
   <path d="M30 16C50 28 52 56 30 76C8 56 10 28 30 16Z" fill="#2a2a2e" stroke="#0d0d10" stroke-width="2.5"/><path d="M30 22V70" stroke="#efe8d0" stroke-width="4" stroke-linecap="round"/><path d="M21 30Q19 46 23 62M39 30Q41 46 37 62" stroke="#cfc6a8" stroke-width="2.6" fill="none" stroke-linecap="round"/>
