@@ -260,6 +260,43 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .du-pair.draw .du-mid::before{content:'무승부';font-weight:900;color:var(--muted)}
 @keyframes punch{0%{transform:none}40%{transform:translateX(var(--px,24px)) scale(1.12)}100%{transform:none}}
 .du-s.r{--px:-24px}
+/* chest */
+.ch-legend{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.cl{display:inline-block;padding:2px 8px;border-radius:8px;font-size:12px}
+.cl.miss{background:#3a3f4b;color:#cfd3dc}.cl.common{background:#2f4a2a;color:#cfe8bf}.cl.fine{background:#173a63;color:#bcd8ff}.cl.rare{background:#43205e;color:#e6c8ff}.cl.legend{background:#5b4510;color:#ffe08a}
+.ch-cap{text-align:center;font-weight:700;margin:6px 0;min-height:22px}
+.ch-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;max-width:460px;margin:0 auto;padding:10px;border-radius:16px;background:#1d140b;border:2px solid #4a3218}
+.chest{position:relative;width:100%;min-width:0;aspect-ratio:1;border:2px solid transparent;border-radius:12px;background:#2a1e12;cursor:pointer;padding:0;display:grid;place-items:center;font:inherit;color:#fff}
+.chest .csvg{width:78%;height:auto;overflow:visible}
+.chest .cn{position:absolute;left:5px;top:3px;font-size:11px;font-weight:800;color:#e9d3a8}
+.chest .cpk{position:absolute;right:4px;bottom:3px;font-size:10px;color:var(--gold);font-weight:800}
+.chest:hover{filter:brightness(1.2)}
+.chest.sel{border-color:var(--gold);background:#4a3510;box-shadow:0 0 16px rgba(245,197,66,.5)}
+.chest.locked::after{content:'✔';position:absolute;right:4px;top:2px;font-size:12px;color:var(--green)}
+.ch-grid.shuffling .chest{animation:chshuf .5s ease-in-out infinite alternate;animation-delay:var(--d)}
+@keyframes chshuf{from{transform:translate(-4px,-3px) rotate(-6deg)}to{transform:translate(4px,3px) rotate(6deg)}}
+.ch-mine{text-align:center;margin-top:8px;min-height:22px}
+.lid{transform-origin:6px 24px;transition:transform .5s cubic-bezier(.3,1.6,.5,1)}
+.ch-grid.result .chest{cursor:default}
+.ch-grid.shake .chest{animation:shake .3s ease-in-out infinite;animation-delay:var(--d)}
+.ch-grid.opened .lid{transform:rotate(-38deg) translate(-2px,-6px)}
+.chest .cg{position:absolute;inset:auto 0 6px 0;text-align:center;font-size:10px;font-weight:900;line-height:1.15;opacity:0;transform:translateY(6px);transition:all .4s .3s;text-shadow:0 1px 2px #000}
+.ch-grid.opened .chest .cg{opacity:1;transform:none}
+.ch-grid.opened .chest.miss{background:#24262c}.ch-grid.opened .chest.miss .csvg{filter:grayscale(.8) brightness(.7)}
+.ch-grid.opened .chest.common{background:#26361f}
+.ch-grid.opened .chest.fine{background:#132c4d;box-shadow:0 0 14px rgba(70,150,255,.7)}
+.ch-grid.opened .chest.rare{background:#371a4f;box-shadow:0 0 18px rgba(190,110,255,.85)}
+.ch-grid.opened .chest.legend{background:#5b4510;box-shadow:0 0 28px rgba(255,210,70,1);animation:cheer .7s ease-in-out infinite;z-index:3}
+.chest.picked{outline:2px dashed #ffffff55}
+.chest .cav{position:absolute;left:0;right:0;top:-12px;display:flex;justify-content:center;z-index:4}
+.chest .cav img{width:24px;height:22px;object-fit:contain;margin:0 -3px;filter:drop-shadow(0 1px 2px #000)}
+.chest .cav i{font-size:9px;font-style:normal;color:var(--gold)}
+.ch-banner{display:none;margin-top:10px;text-align:center}
+.ch-banner.on{display:block}
+.cb-in{display:inline-block;padding:10px 18px;border-radius:14px;background:linear-gradient(90deg,#8a6a10,#f5c542,#8a6a10);color:#2a1d00;font-size:18px;font-weight:900;animation:capPop .5s ease-out,cheer 1.2s .5s ease-in-out infinite;box-shadow:0 0 30px rgba(255,210,70,.8)}
+.ch-me big{margin:6px 0}
+.ch-me.legend{box-shadow:0 0 30px rgba(255,210,70,.7)}.ch-me.rare{border-color:#9b5bd6}.ch-me.fine{border-color:#3b82d6}.ch-me.miss{filter:saturate(.6)}
+.lstk{width:26px;height:24px;object-fit:contain;vertical-align:-7px;margin-right:2px}
 /* react */
 .rx-pad{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:280px;margin-top:6px;border:none;border-radius:20px;color:#fff;font:inherit;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;transition:background .06s}
 .rx-pad.wait{background:#2a2f3d}
@@ -550,6 +587,7 @@ const GAMES = {
   ,mines:{ name:'지뢰찾기 서바이벌', icon:'💣', stk:'shock', desc:'5×5 보드에 지뢰 5개! 순서대로 칸을 하나씩 열어요. 지뢰를 밟으면 탈락, 최후의 1인이 판돈을 독식해요. 안전 칸이 다 열려도 2명 이상 남으면 새 보드로 결승 라운드!' }
   ,bomb:{ name:'폭탄 돌리기', icon:'💥', stk:'gloom', desc:'해바라기씨 폭탄을 받으면 2초 뒤부터 다른 햄스터에게 넘길 수 있어요. 폭탄은 8~18초 사이 언제 터질지 몰라요! 터질 때 들고 있으면 탈락, 최후의 1인이 판돈을 독식해요. (3명 이상)' }
   ,react:{ name:'반응속도 대결', icon:'⚡', stk:'excited', desc:'3초 카운트다운 후 2~5초 기다리다 초록 신호가 뜨면 최대한 빨리 눌러요! 신호 전에 누르면 부정 출발 실격. 가장 빠른 사람이 판돈을 가져가요.' }
+  ,chest:{ name:'랜덤 보물상자', icon:'🎁', stk:'box', desc:'25개 보물상자 중 하나를 골라요! 꽝·일반·고급·희귀·전설 상자 수는 항상 같고 위치만 섞여요. 마감되면 모든 상자가 동시에 열리고, 고른 상자의 배율만큼 받아요. (최고 5배)' }
 };
 // 경주 캐릭터 20종 (이미지 순서와 같음)
 const AVATAR_NAMES=['햄찌','레드','블루','그린','옐로','리본','신사','셰프','공룡','천사','마법사','탐정','기사','스포츠','시크','딸기','꿀벌','마도로스','털모자','임금님'];
@@ -649,6 +687,7 @@ function validate(type,d,params){
     case 'pd': return (d.c==='C'||d.c==='B')?{c:d.c}:null;
     case 'race': { const h=Math.floor(Number(d.h)), a=toAmt(d.a); return (h>=0&&h<RN&&a!==null&&a>0)?{h,a}:null; }
     case 'duel': { const a=toAmt(d.a); return (HANDS[d.r]&&a!==null)?{r:d.r,a}:null; }
+    case 'chest': { const a=toAmt(d.a); if(a===null||a<=0) return null; const k=(d.k===null||d.k===undefined||d.k==='')?null:Math.floor(Number(d.k)); return (k===null||(k>=0&&k<25))?{k,a}:null; }
     case 'react': { if(d.fs) return {fs:1}; const ms=Math.round(Number(d.ms)); return (ms>=0&&ms<=10000)?{ms}:null; }
     case 'bomb': { const t=d&&typeof d.to==='string'?d.to:null; return t?{to:t}:null; }
     case 'mines': { const c=Math.floor(Number(d.cell)); return (c>=0&&c<25)?{cell:c}:null; }
@@ -731,6 +770,12 @@ function resolve(type,params,subs){
     });
     return { deltas, detail:{ rows } };
   }
+  if(type==='chest'){
+    const layout=params.layout;   // 라운드 시작 때 방장이 섞어 둔 25칸 등급
+    const rows=Object.entries(subs).map(([id,s])=>{ let k=s.k, auto=false; if(k===null||k===undefined){ k=Math.floor(Math.random()*25); auto=true; }
+      const c=CHEST_BY[layout[k]], dv=Math.floor(s.a*c.m)-s.a; add(id,dv); return { id, k, a:s.a, auto, grade:c.g, m:c.m, d:dv }; }).sort((x,y)=>y.d-x.d);
+    return { deltas, detail:{ layout, rows } };
+  }
   if(type==='plinko'){
     // 방장이 씨앗마다 좌/우 경로(8비트)를 정함 → 화면의 씨앗은 이 경로를 그대로 따라감
     const rows=Object.entries(subs).map(([id,s])=>{ const paths=[], slots=[]; let pay=0;
@@ -777,6 +822,9 @@ const DICE_MULT=1.9;    // 주사위 홀짝 (확률 50%)        → 회수율 95
 const SHELL_MULT=2.85;  // 햄찌 야바위 (확률 1/3)        → 회수율 95%
 const LOTTO_MULT=9.5;   // 숫자 추첨: 공 2개 중 맞힌 숫자 1개당 (확률 10%) → 회수율 95%
 const LOTTO_DRAW=2;     // 숫자 추첨에서 나오는 공 개수
+// 보물상자 25개 구성 (개수 고정, 위치만 섞음) — 회수율 (0×9+0.7×8+1.4×5+3×2+5×1)/25 = 94.4%
+const CHEST=[ {g:'miss',name:'꽝',n:9,m:0}, {g:'common',name:'일반',n:8,m:0.7}, {g:'fine',name:'고급',n:5,m:1.4}, {g:'rare',name:'희귀',n:2,m:3}, {g:'legend',name:'전설',n:1,m:5} ];
+const CHEST_BY=Object.fromEntries(CHEST.map(c=>[c.g,c]));
 const RACE_RTP=0.95, RACE_MAX=999; // 경마: 배당 = 0.95 ÷ 우승확률 (상한 없음)
 const PK_ROWS=8, PK_MULT=[10,3,1.3,0.7,0.35,0.7,1.3,3,10],  // 플링코 회수율 약 95.2%
   PK_MAXBALL=10;
@@ -806,7 +854,7 @@ function minesSettle(fee,players,alive){
 function betTotal(type,d){
   if(!d) return 0;
   if(type==='auction') return d.bid||0;
-  if(type==='race'||type==='duel'||type==='dice'||type==='shell') return d.a||0;
+  if(type==='race'||type==='duel'||type==='dice'||type==='shell'||type==='chest') return d.a||0;
   if(type==='lotto') return (d.a||0)*((d.nums||[]).length);
   if(type==='plinko') return (d.a||0)*(d.c||0);
   if(type==='roulette') return Object.values(d.bets||{}).reduce((t,b)=>t+(Number(b.a)||0),0);
@@ -818,7 +866,7 @@ function clampMove(type,mv,money){
   if(type==='auction') mv.bid=Math.min(mv.bid,money);
   if(type==='plinko'&&mv.a*mv.c>money){ mv.a=Math.floor(money/mv.c); if(mv.a<1){ mv.c=1; mv.a=Math.max(1,money); } }
   if(type==='lotto'&&mv.a*mv.nums.length>money){ mv.a=Math.floor(money/mv.nums.length); if(mv.a<1){ mv.nums=mv.nums.slice(0,1); mv.a=Math.max(1,money); } }
-  if(type==='race'||type==='dice'||type==='shell') mv.a=Math.max(1,Math.min(mv.a,money));
+  if(type==='race'||type==='dice'||type==='shell'||type==='chest') mv.a=Math.max(1,Math.min(mv.a,money));
   if(type==='duel') mv.a=Math.min(mv.a,money);
   if(type==='roulette'){ const tot=betTotal(type,mv);
     if(tot>money){ const f=money/tot; for(const k of Object.keys(mv.bets)){ mv.bets[k].a=Math.floor(mv.bets[k].a*f); if(mv.bets[k].a<=0) delete mv.bets[k]; }
@@ -840,6 +888,7 @@ function botMove(type,money,params){
         bets[k]={ v, a:botAmount(money,k==='num'?0.02:0.06,k==='num'?0.08:0.22,100) }; }
       return { bets };
     }
+    case 'chest': return { k:Math.floor(Math.random()*25), a:botAmount(money,0.08,0.35,100) };
     case 'plinko': { const c=1+Math.floor(Math.random()*5); return { c, a:botAmount(money,0.02,0.1,100) }; }
     case 'lotto': { const k=1+Math.floor(Math.random()*3); return { nums:shuffle(Array.from({length:20},(_,i)=>i+1)).slice(0,k).sort((x,y)=>x-y), a:botAmount(money,0.03,0.12,100) }; }
     case 'shell': return { k: Math.floor(Math.random()*3), a: botAmount(money,0.08,0.35,100) };
@@ -870,7 +919,7 @@ let clockOffset=0, mySub={round:-1,data:null}, lastKey='', SEL={}, kicked=false,
 /* ================= 방장(호스트) ================= */
 function newState(code,title,hostPid,hostName){
   return { code, title, hostId:hostPid, phase:'lobby', round:0,
-    settings:{ startMoney:10000, rounds:5, timer:40, fee:1000, pdStake:2000, horses:6, rlTime:60, stakePct:10, diceTime:20, shellTime:5, lottoTime:20, plinkoTime:20, mineFee:1000, mineTurn:5, bombMin:8, bombMax:18 },
+    settings:{ startMoney:10000, rounds:5, timer:40, fee:1000, pdStake:2000, horses:6, rlTime:60, stakePct:10, diceTime:20, shellTime:5, lottoTime:20, plinkoTime:20, mineFee:1000, mineTurn:5, bombMin:8, bombMax:18, chestTime:20 },
     players:{ [hostPid]:{ name:hostName, money:10000, online:true, last:0, av:Math.floor(Math.random()*PLAYER_AV.length) } },
     game:null, result:null };
 }
@@ -923,7 +972,7 @@ function hSettings(k,v){
   const st=HOST.state; if(st.phase!=='lobby') return;
   if(k==='title'){ st.title=String(v).trim().slice(0,30)||'머니 서바이벌'; return changed(); }
   if(k==='bots'){ setBots(Math.min(9,Math.max(1,Math.floor(Number(v))||1))); return changed(); }
-  const lim={ startMoney:[100,1e12], rounds:[1,30], timer:[10,300], fee:[0,1e12], pdStake:[0,1e12], horses:[2,AVATAR_NAMES.length], rlTime:[5,300], diceTime:[5,300], shellTime:[3,60], lottoTime:[5,300], plinkoTime:[5,300], stakePct:[1,100], mineFee:[0,1e12], mineTurn:[3,60], bombMin:[3,60], bombMax:[3,90] }[k];
+  const lim={ startMoney:[100,1e12], rounds:[1,30], timer:[10,300], fee:[0,1e12], pdStake:[0,1e12], horses:[2,AVATAR_NAMES.length], rlTime:[5,300], diceTime:[5,300], shellTime:[3,60], lottoTime:[5,300], plinkoTime:[5,300], stakePct:[1,100], mineFee:[0,1e12], mineTurn:[3,60], bombMin:[3,60], bombMax:[3,90], chestTime:[5,300] }[k];
   if(!lim) return;
   let n=Math.floor(Number(v)); if(!Number.isFinite(n)) return changed();
   n=Math.min(lim[1],Math.max(lim[0],n)); st.settings[k]=n; changed();
@@ -949,10 +998,12 @@ function hStartRound(type){
   st.round+=1;
   if(type==='shell'){ params.seed=Math.floor(Math.random()*2147483647); params.start0=Math.floor(Math.random()*3);
     params.show=2000; params.shuf=5000+Math.floor(Math.random()*3000); params.pick=(st.settings.shellTime||5)*1000; params.t0=Date.now()+600; }
-  const secs=type==='roulette'?(st.settings.rlTime||60):type==='dice'?(st.settings.diceTime||20):type==='shell'?(params.show+params.shuf+params.pick+600)/1000:type==='lotto'?(st.settings.lottoTime||20):type==='plinko'?(st.settings.plinkoTime||20):st.settings.timer;
+  const secs=type==='roulette'?(st.settings.rlTime||60):type==='dice'?(st.settings.diceTime||20):type==='shell'?(params.show+params.shuf+params.pick+600)/1000:type==='lotto'?(st.settings.lottoTime||20):type==='plinko'?(st.settings.plinkoTime||20):type==='chest'?2+(st.settings.chestTime||20):st.settings.timer;
   st.game={ type, params, eligible:online, submitted:{}, deadline:Date.now()+secs*1000 };
   if(type==='roulette'||type==='dice'||type==='lotto') st.game.stats={};
+  if(type==='chest'){ st.game.picks={}; st.game.t0=Date.now()+2000; }
   st.result=null; HOST.subs={};
+  if(type==='chest') HOST.subs.__layout=shuffle(CHEST.flatMap(c=>Array(c.n).fill(c.g)));   // 25칸 등급: 방장만 보관 (공개 상태에 넣지 않음)
   if(type==='react'){ rInit(st.game); st.phase='play'; changed(); return; }
   if(type==='bomb'){ bInit(st.game); st.phase='play'; changed(); return; }
   if(type==='mines'){ mInit(st.game); st.phase='play'; changed(); return; }
@@ -976,7 +1027,7 @@ function scheduleBots(){
     setTimeout(()=>{
       if(HOST.state.round!==round||HOST.state.phase!=='play'||!st.players[id]) return;
       hSubmit(id,clampMove(g.type,botMove(g.type,st.players[id].money,g.params),st.players[id].money));
-    },g.type==='shell'?(g.params.t0+g.params.show+g.params.shuf-Date.now())+400+Math.random()*g.params.pick*0.6:1500+Math.random()*Math.max(0,maxWait-1500));
+    },g.type==='chest'?(g.t0-Date.now())+800+Math.random()*Math.min(9000,(g.deadline-g.t0)*0.6):g.type==='shell'?(g.params.t0+g.params.show+g.params.shuf-Date.now())+400+Math.random()*g.params.pick*0.6:1500+Math.random()*Math.max(0,maxWait-1500));
   });
 }
 function createSingle(name,botCount){
@@ -1105,22 +1156,27 @@ function hSubmit(pid,data){
   if(st.game&&st.game.type==='react'){ rSubmit(pid,data); return; }
   if(st.game&&st.game.type==='bomb'){ const c=validate('bomb',data); if(c) bPass(pid,c.to); return; }
   if(st.game&&st.game.type==='mines'){ const c=validate('mines',data); if(c) mPick(pid,c.cell,false); return; }
-  const g=st.game; if(!g.eligible.includes(pid)||g.submitted[pid]) return;
+  const g=st.game; if(!g.eligible.includes(pid)||(g.submitted[pid]&&g.type!=='chest')) return;   // 보물상자는 마감 전까지 변경 가능
   const clean=validate(g.type,data,g.params); if(!clean) return;
+  if(g.type==='chest'&&Date.now()<g.t0-200) return;   // 상자 섞는 중
   if(g.type==='shell'&&Date.now()<g.params.t0+g.params.show+g.params.shuf-300) return; // 섞기가 끝나기 전엔 선택 불가
   if(betTotal(g.type,clean)>Math.max(0,st.players[pid].money)) return; // 보유금보다 많이 걸 수 없음
   HOST.subs[pid]={...clean,ts:Date.now()}; g.submitted[pid]=true;
+  if(g.type==='chest') g.picks[pid]=clean.k;
   if(g.type==='dice') g.stats[clean.c]=(g.stats[clean.c]||0)+1;
   if(g.type==='lotto') clean.nums.forEach(n=>g.stats[n]=(g.stats[n]||0)+1);
   if(g.type==='roulette') for(const [k,b] of Object.entries(clean.bets)){ const key=k+':'+b.v; g.stats[key]=(g.stats[key]||0)+1; } changed(); checkAllIn();
 }
 function checkAllIn(){
+  const st0=HOST.state; if(st0.phase==='play'&&st0.game.type==='chest'){ const g=st0.game, need=g.eligible.filter(id=>st0.players[id]&&st0.players[id].online);
+    if(need.length&&need.every(id=>g.submitted[id])&&g.deadline>Date.now()+3000){ g.deadline=Date.now()+3000; g.allIn=true; changed(); } return; }   // 모두 확정 → 3초 뒤 개봉 (그 전까지 변경 가능)
   const st=HOST.state; if(st.phase!=='play'||st.game.type==='mines'||st.game.type==='bomb'||st.game.type==='react') return;
   const g=st.game, need=g.eligible.filter(id=>st.players[id]&&st.players[id].online);
   if(need.length&&need.every(id=>g.submitted[id])){ const r=st.round; setTimeout(()=>{ if(HOST.state.round===r) hClose(); },900); }
 }
 function hClose(){
   const st=HOST.state; if(st.phase!=='play') return;
+  if(st.game.type==='chest') st.game.params.layout=HOST.subs.__layout;
   const g=st.game, res=g.type==='react'
     ?(()=>{ const R=reactSettle(g.params.fee,g.players.filter(id=>st.players[id]),HOST.subs); return { deltas:R.deltas, detail:{ rows:R.rows, winners:R.winners, fee:g.params.fee, n:g.players.length } }; })()
     :g.type==='bomb'
@@ -1129,7 +1185,7 @@ function hClose(){
     :g.type==='mines'
     ?{ deltas:minesSettle(g.params.fee,g.order.filter(id=>st.players[id]),g.alive.filter(id=>st.players[id])),
        detail:{ order:g.order, alive:g.alive.slice(), elim:g.elim, board:g.board.map((v,i)=>v?{...v}:{mine:HOST.subs.__mines.includes(i)}), mines:HOST.subs.__mines.slice(), fee:g.params.fee, final:g.final } }
-    :resolve(g.type,g.params,HOST.subs);
+    :resolve(g.type,g.params,Object.fromEntries(Object.entries(HOST.subs).filter(([k])=>!k.startsWith('__'))));
   for(const p of Object.values(st.players)){ p.last=0; p.prev={ m:p.money, d:p.debt||0 }; }
   const loans={}, unit=st.settings.startMoney;
   for(const [id,d] of Object.entries(res.deltas)){ const p=st.players[id]; if(!p) continue;
@@ -1304,12 +1360,14 @@ function updateDynamic(){
     if(g.type==='mines') mUpdate();
     if(g.type==='bomb') bUpdate();
     if(g.type==='react') rUpdate();
+    if(g.type==='chest') cUpdate();
     if(g.type==='roulette'||g.type==='dice'||g.type==='lotto') document.querySelectorAll('[data-ck]').forEach(e=>{ const c=(g.stats||{})[e.dataset.ck]; e.textContent=c?c+'명':''; });
     tick();
   }
 }
 function tick(){
   if(S&&S.phase==='play'&&(S.game.type==='bomb'||S.game.type==='react')) return;
+  if(S&&S.phase==='play'&&S.game.type==='chest'){ const el=$('#timer'); if(el){ const now=Date.now()-clockOffset; if(now<S.game.t0){ el.textContent='섞는 중'; el.classList.remove('urgent'); } else { const r=Math.max(0,Math.ceil((S.game.deadline-now)/1000)); el.textContent=r>0?r+'초':'개봉!'; el.classList.toggle('urgent',r<=3); } } return; }
   if(S&&S.phase==='play'&&S.game.type==='mines') return mTick();
   if(!S||S.phase!=='play'||S.game.type==='shell') return; const el=$('#timer'); if(!el) return;
   const rem=Math.max(0,Math.ceil((S.game.deadline-(Date.now()-clockOffset))/1000));
@@ -1330,7 +1388,7 @@ function stageHTML(){
   }
   return '';
 }
-const SETTINGS=[['startMoney','시작 금액'],['rounds','라운드 수'],['timer','제한 시간(초)'],['stakePct','고정 판돈 비율(%)'],['horses','경마 출전 수 (2~20)'],['rlTime','룰렛 베팅 시간(초)'],['diceTime','주사위 홀짝 선택 시간(초)'],['shellTime','야바위 선택 시간(초)'],['lottoTime','숫자 추첨 선택 시간(초)'],['plinkoTime','플링코 베팅 시간(초)'],['mineTurn','지뢰찾기 차례 시간(초)'],['bombMin','폭탄 최소 시간(초)'],['bombMax','폭탄 최대 시간(초)']];
+const SETTINGS=[['startMoney','시작 금액'],['rounds','라운드 수'],['timer','제한 시간(초)'],['stakePct','고정 판돈 비율(%)'],['horses','경마 출전 수 (2~20)'],['rlTime','룰렛 베팅 시간(초)'],['diceTime','주사위 홀짝 선택 시간(초)'],['shellTime','야바위 선택 시간(초)'],['lottoTime','숫자 추첨 선택 시간(초)'],['plinkoTime','플링코 베팅 시간(초)'],['mineTurn','지뢰찾기 차례 시간(초)'],['bombMin','폭탄 최소 시간(초)'],['bombMax','폭탄 최대 시간(초)'],['chestTime','보물상자 선택 시간(초)']];
 function lobbyHTML(){
   const st=S.settings;
   const botCount=Object.values(S.players).filter(p=>p.bot).length;
@@ -1369,6 +1427,7 @@ function describeSub(type,d){
     case 'pd': return d.c==='C'?'<b>🤝 협력</b>':'<b>🗡️ 배신</b>';
     case 'race': return `<b>${S.game.params.runners[d.h].name}</b>에 <b>${fmt(d.a)}</b>원`;
     case 'duel': return `<b>${HANDS[d.r]}</b> · <b>${fmt(d.a)}</b>원`;
+    case 'chest': return `${d.k===null?'<b>무작위 상자</b>':`<b>${d.k+1}번 상자</b>`}에 <b>${fmt(d.a)}</b>원`;
     case 'plinko': return `씨앗 <b>${d.c}개</b> × <b>${fmt(d.a)}</b>원 (총 ${fmt(d.a*d.c)}원)`;
     case 'lotto': return `숫자 <b>${d.nums.join(', ')}</b> · 숫자당 <b>${fmt(d.a)}</b>원 (총 ${fmt(d.a*d.nums.length)}원)`;
     case 'shell': return `<b>${d.k+1}번 자리</b>에 <b>${fmt(d.a)}</b>원`;
@@ -1378,6 +1437,7 @@ function describeSub(type,d){
   return '';
 }
 function playHTML(){
+  if(S.game.type==='chest') return chestPlayHTML();
   if(S.game.type==='react') return reactPlayHTML();
   if(S.game.type==='bomb') return bombPlayHTML();
   if(S.game.type==='mines') return minesPlayHTML();
@@ -1439,6 +1499,8 @@ function bindStage(){
     if(t.dataset.pd) return submit({c:t.dataset.pd});
     if(t.dataset.mc) return mClick(+t.dataset.mc);
     if(t.dataset.bt) return bClick(t.dataset.bt);
+    if(t.dataset.ck2!==undefined) return cPick(+t.dataset.ck2);
+    if(t.id==='cConfirm') return cConfirm();
     if(t.id==='bmute') return bToggleMute();
     if(t.dataset.allin){ const a=$('#amt'); if(a) a.value=t.dataset.allin==='lotto'?Math.floor(myMoney()/Math.max(1,(SEL.ln||[]).length)):t.dataset.allin==='plinko'?Math.floor(myMoney()/Math.max(1,+(SEL.pc||1))):myMoney(); lottoTotal(); pkTotal(); return; }
     if(t.dataset.ln) return lottoPick(+t.dataset.ln);
@@ -1476,7 +1538,7 @@ function resultHTML(){
   const ln=Object.entries(r.loans||{});
   const loanHTML=ln.length?`<div class="loanbox">${stk('cryPuddle','mstk')}<div><b>💳 파산!</b> 보유금을 모두 잃어 빚을 졌어요<div class="deltas">${ln.map(([id,a])=>`<span class="pill">${nameOf(id)} <b class="down">빚 +${fmt(a)}</b></span>`).join('')}</div></div></div>`:'';
   return `<div class="ghead"><div class="gicon">${gimg(G)}</div><div><div class="gname">라운드 ${r.round} 결과 · ${G.name}</div></div></div>
-    <div id="rbody">${resultBody(r)}</div><div id="reveal" class="hidden">${r.type==='race'?raceReveal(r.detail):r.type==='roulette'?rlReveal(r.detail):r.type==='dice'?diceReveal(r.detail):r.type==='shell'?shellReveal(r.detail):r.type==='lotto'?lottoReveal(r.detail):r.type==='plinko'?pkReveal(r.detail):r.type==='mines'?minesReveal(r.detail):r.type==='bomb'?bombReveal(r.detail):r.type==='react'?reactReveal(r.detail):`<div class="sec">📋 결과 요약</div>${resultBodyOld(r)}`}${loanHTML}${deltas}${next}</div>`;
+    <div id="rbody">${resultBody(r)}</div><div id="reveal" class="hidden">${r.type==='race'?raceReveal(r.detail):r.type==='roulette'?rlReveal(r.detail):r.type==='dice'?diceReveal(r.detail):r.type==='shell'?shellReveal(r.detail):r.type==='lotto'?lottoReveal(r.detail):r.type==='plinko'?pkReveal(r.detail):r.type==='mines'?minesReveal(r.detail):r.type==='bomb'?bombReveal(r.detail):r.type==='react'?reactReveal(r.detail):r.type==='chest'?chestReveal(r.detail):`<div class="sec">📋 결과 요약</div>${resultBodyOld(r)}`}${loanHTML}${deltas}${next}</div>`;
 }
 const SHOW_TYPES=['unique','auction','pd','duel'];
 function resultBody(r){ return SHOW_TYPES.includes(r.type)?showStage(r):resultBodyOld(r); }
@@ -1522,6 +1584,7 @@ function resultBodyOld(r){
   if(r.type==='plinko') return pkStageHTML(r.detail);
   if(r.type==='mines'||r.type==='bomb') return `<div class="showcap" id="showcap">🏁 게임 종료!</div>`;
   if(r.type==='react') return reactStageHTML(r.detail);
+  if(r.type==='chest') return chestStageHTML(r.detail);
   if(r.type==='duel'){
     const face=dv=>dv>0?'excited':dv<0?'cry':'shrug';
     const side=(h,a,m)=>`${HANDS[h]} · ${fmt(a)}원${m?' <span class="muted">(미제출)</span>':''}`;
@@ -1550,6 +1613,7 @@ function afterStage(){
   if(S.phase==='result'&&S.result.type==='mines') runMinesResult();
   if(S.phase==='result'&&S.result.type==='bomb') runMinesResult();
   if(S.phase==='result'&&S.result.type==='react') runReactResult();
+  if(S.phase==='result'&&S.result.type==='chest') runChestResult();
   if(S.phase==='play'&&S.game.type==='shell') runShellPlay();
   if(S.phase==='play'&&S.game.type==='plinko'&&$('#pktotal')){ SEL.pc='1'; pkTotal(); const a=$('#amt'); if(a) a.oninput=pkTotal; }
   if(S.phase==='play'&&S.game.type==='lotto'&&$('#lttotal')){ SEL.ln=[]; lottoTotal(); const a=$('#amt'); if(a) a.oninput=lottoTotal; }
@@ -1740,6 +1804,75 @@ function runRace(){
   }
   requestAnimationFrame(frame);
 }
+/* ===== 랜덤 보물상자 화면 ===== */
+const CHEST_SVG=`<svg viewBox="0 0 60 52" class="csvg"><rect x="6" y="24" width="48" height="24" rx="4" fill="#8a5a2b" stroke="#3b2410" stroke-width="2"/><rect x="6" y="32" width="48" height="4" fill="#d4a24a"/><rect x="26" y="30" width="8" height="10" rx="2" fill="#f5c542" stroke="#3b2410"/>
+  <g class="lid"><path d="M6 24Q6 8 30 8Q54 8 54 24Z" fill="#a56b32" stroke="#3b2410" stroke-width="2"/><path d="M12 22Q13 12 30 12" stroke="#d4a24a" stroke-width="3" fill="none"/></g></svg>`;
+const CH_REACT={miss:'gloom',common:'wave',fine:'proud',rare:'excited',legend:'sparkle'};
+let C_SEL=null;
+function chestPlayHTML(){
+  const g=S.game, G=GAMES.chest, elig=g.eligible.includes(ME.pid); C_SEL=null;
+  return `<div class="ghead"><div class="gicon">${gimg(G)}</div><div><div class="gname">라운드 ${S.round} · ${G.name}</div><div class="gdesc">${G.desc}</div></div></div>
+    <div class="timerbar"><div class="timer" id="timer">--</div><div class="muted" id="subcount"></div></div>
+    <div class="ch-legend">${CHEST.map(c=>`<span class="cl ${c.g}"><b>${c.name}</b> ${c.n}개 · ${c.m}배</span>`).join('')}</div>
+    <div class="ch-cap" id="ccap"></div>
+    <div class="ch-grid shuffling" id="cgrid">${Array.from({length:25},(_,i)=>`<button class="chest" data-ck2="${i}" style="--d:${(i%5)*0.05+Math.floor(i/5)*0.05}s"><span class="cn">${i+1}</span>${CHEST_SVG}<span class="cpk"></span></button>`).join('')}</div>
+    ${elig?`${amtInput('걸 금액')}<div class="ch-mine" id="cmine"></div><button class="btn big gold" id="cConfirm">확정하기</button>`:`<div class="wait">이번 라운드가 시작된 뒤에 들어오셔서 관전 중이에요.</div>`}
+    ${ME.isHost?`<button class="btn ghost" id="closeBtn">⏹ 지금 마감하기</button>`:''}`;
+}
+function cPick(k){ const g=S.game; if(!g.eligible.includes(ME.pid)) return; if(Date.now()-clockOffset<g.t0) return toast('상자를 섞는 중이에요!');
+  C_SEL=k; if(mySub.round===S.round){ cSend(); } cUpdate(); }
+function cConfirm(){ cSend(); }
+function cSend(){
+  const g=S.game, prev=mySub.round===S.round?mySub.data:null; let a=$('#amt')?$('#amt').value:''; if(a===''&&prev) a=prev.a; const d={k:C_SEL,a};
+  const clean=validate('chest',d); if(!clean) return toast('1원 이상 걸 금액을 입력하세요');
+  if(clean.a>myMoney()) return toast(`보유금(${fmt(myMoney())}원)보다 많이 걸 수 없어요`);
+  if(Date.now()-clockOffset<g.t0) return toast('상자를 섞는 중이에요!');
+  mySub={round:S.round,data:clean};
+  if(ME.isHost) hSubmit(ME.pid,clean); else if(CL&&CL.conn&&CL.conn.open) CL.conn.send({t:'act',round:S.round,data:clean}); else return toast('연결이 끊겨 확정하지 못했어요');
+  cUpdate();
+}
+function cUpdate(){
+  const g=S.game, grid=$('#cgrid'); if(!grid) return;
+  const now=Date.now()-clockOffset, shuf=now<g.t0; grid.classList.toggle('shuffling',shuf);
+  if(shuf&&!grid.dataset.t){ grid.dataset.t=1; setTimeout(()=>{ if(S&&S.phase==='play'&&S.game.type==='chest') cUpdate(); },Math.max(50,g.t0-now+30)); }
+  const cnt={}; Object.values(g.picks||{}).forEach(k=>{ if(k!==null&&k!==undefined) cnt[k]=(cnt[k]||0)+1; });
+  const mine=mySub.round===S.round?mySub.data:null; if(mine&&C_SEL===null) C_SEL=mine.k;
+  const ai=$('#amt'); if(mine&&ai&&ai.value==='') ai.value=mine.a;   // 화면이 다시 그려져도 확정 금액 유지
+  [...grid.children].forEach((b,i)=>{ b.classList.toggle('sel',C_SEL===i); b.classList.toggle('locked',!!mine&&mine.k===i); b.querySelector('.cpk').textContent=cnt[i]?cnt[i]+'명':''; });
+  const cap=$('#ccap'); if(cap) cap.innerHTML=shuf?'🔀 보물상자를 섞는 중…':g.allIn?'✅ 모두 확정! 곧 상자가 열려요 (그 전까지 변경 가능)':'👇 상자를 하나 고르고 금액을 확정하세요 · 마감 전까지 바꿀 수 있어요';
+  const my=$('#cmine'); if(my) my.innerHTML=mine?`✅ 확정: <b>${mine.k===null?'무작위 상자':(mine.k+1)+'번 상자'}</b> · ${fmt(mine.a)}원 <span class="muted">(다른 상자를 누르면 바로 변경돼요)</span>`:C_SEL!==null?`선택: <b>${C_SEL+1}번 상자</b> · 금액을 입력하고 확정하세요`:'<span class="muted">상자를 고르지 않고 확정하면 무작위 상자가 배정돼요</span>';
+  const bt=$('#cConfirm'); if(bt) bt.textContent=mine?'금액 변경하기':'확정하기';
+  const sc=$('#subcount'); if(sc) sc.textContent=`${Object.keys(g.submitted).length}/${g.eligible.length}명 확정`;
+}
+function chestStageHTML(d){
+  const by={}; d.rows.forEach(r=>(by[r.k]=by[r.k]||[]).push(r.id));
+  return `<div class="showcap" id="showcap">🎁 모든 상자를 동시에 엽니다!</div>
+    <div class="ch-grid result" id="cgrid">${d.layout.map((g,i)=>`<div class="chest ${g} ${by[i]?'picked':''}" style="--d:${Math.random()*0.15}s"><span class="cn">${i+1}</span>${CHEST_SVG}
+      <span class="cg">${CHEST_BY[g].name}<br>${CHEST_BY[g].m}배</span><span class="cfx"></span>
+      ${by[i]?`<span class="cav">${by[i].slice(0,3).map(id=>`<img src="${PLAYER_AV[avIdx(id)]}" alt="">`).join('')}${by[i].length>3?`<i>+${by[i].length-3}</i>`:''}</span>`:''}</div>`).join('')}</div>
+    <div class="ch-banner" id="cban"></div>${SKIP}`;
+}
+function chestChime(){ if(bMuted()) return; try{ B_AUDIO=B_AUDIO||new (window.AudioContext||window.webkitAudioContext)(); const a=B_AUDIO, t=a.currentTime;
+  [523,659,784,1047,1319].forEach((f,i)=>{ const o=a.createOscillator(), g=a.createGain(); o.type='triangle'; o.frequency.value=f; g.gain.setValueAtTime(0.0001,t+i*0.09); g.gain.exponentialRampToValueAtTime(0.25,t+i*0.09+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+i*0.09+0.6); o.connect(g).connect(a.destination); o.start(t+i*0.09); o.stop(t+i*0.09+0.7); }); }catch(e){} }
+function runChestResult(){
+  const d=S.result.detail, sh=makeShow(), grid=$('#cgrid'), boxes=[...grid.children];
+  const open=()=>{ grid.classList.remove('shake'); grid.classList.add('opened'); };
+  sh.onEnd=()=>open();
+  sh.at(150,()=>{ grid.classList.add('shake'); sh.cap('🥁 두구두구두구…'); });
+  sh.at(1400,()=>{ open(); boxes.forEach((b,i)=>{ const g=d.layout[i]; if(g==='miss') burst(b,['💨'],2); if(g==='common') burst(b,['🪙'],3); if(g==='rare') burst(b,['✨','💜'],6); if(g==='legend') burst(b,['💰','✨','👑','🌟'],22); }); });
+  const leg=d.rows.filter(r=>r.grade==='legend');
+  sh.at(2300,()=>{ const ban=$('#cban');
+    if(leg.length){ chestChime(); ban.innerHTML=`<div class="cb-in">👑 전설 상자 당첨! <b>${leg.map(r=>plainName(r.id)).join(', ')}</b> 님 ${CHEST_BY.legend.m}배!</div>`; ban.classList.add('on'); sh.cap('🌟 전설 상자 등장!!','good'); }
+    else { const me=d.rows.find(r=>r.id===ME.pid); sh.cap(me?`내 상자: <b>${me.k+1}번 · ${CHEST_BY[me.grade].name}</b> (${me.m}배)`:`전설 상자는 ${d.layout.indexOf('legend')+1}번에 있었어요!`,me&&me.m>=1?'good':''); } });
+  sh.at(4800,()=>sh.end());
+}
+function chestReveal(d){
+  const me=d.rows.find(r=>r.id===ME.pid), cnt={}; d.rows.forEach(r=>cnt[r.grade]=(cnt[r.grade]||0)+1);
+  return `${me?`<div class="announce ch-me ${me.grade}">${stk(CH_REACT[me.grade],'rx'+(me.m>=3?' bounce':''))}내 상자는 <b>${me.k+1}번</b>${me.auto?' <span class="muted">(무작위 배정)</span>':''}<big>${CHEST_BY[me.grade].name} · ${me.m}배</big><b class="${me.d>0?'up':me.d<0?'down':''}">${me.d?signed(me.d):'±0'}</b></div>`:''}
+    <div class="deltas" style="justify-content:center">${CHEST.map(c=>`<span class="pill cl ${c.g}">${c.name} <b>${cnt[c.g]||0}명</b></span>`).join('')}</div>
+    ${d.rows.length?`<div class="sec">결과</div><div class="list">${d.rows.map(r=>`<div class="li ${r.grade==='legend'||r.grade==='rare'?'win':''}"><span>${stk(CH_REACT[r.grade],'lstk')}${nameOf(r.id)} · ${r.k+1}번${r.auto?'(무작위)':''} <span class="cl ${r.grade}">${CHEST_BY[r.grade].name} ${r.m}배</span> <span class="muted">${fmt(r.a)}원</span></span><b class="${r.d>0?'up':r.d<0?'down':''}">${r.d?signed(r.d):'±0'}</b></div>`).join('')}</div>`:'<p class="muted">아무도 상자를 고르지 않았어요.</p>'}`;
+}
+
 /* ===== 반응속도 대결 화면 ===== */
 let R_ME=null, R_SIGT=null, R_LOOP=null;
 function reactPlayHTML(){
