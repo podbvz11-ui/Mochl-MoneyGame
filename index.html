@@ -260,6 +260,39 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .du-pair.draw .du-mid::before{content:'무승부';font-weight:900;color:var(--muted)}
 @keyframes punch{0%{transform:none}40%{transform:translateX(var(--px,24px)) scale(1.12)}100%{transform:none}}
 .du-s.r{--px:-24px}
+/* bomb */
+.bm-msg{min-height:44px}
+.bm-t{text-align:center;font-size:17px;padding:8px 0}
+.bm-t.me{color:var(--gold);font-size:19px;animation:capPop .35s ease-out}
+.bm-t.boom{color:#ff8a95;font-size:20px}
+.bm-stage{position:relative;height:420px;margin-top:6px;border-radius:50%/42%;background:radial-gradient(ellipse at center,#2a1e14 0%,#1a120b 70%);border:3px solid #3d2a18;box-shadow:inset 0 0 50px rgba(0,0,0,.6)}
+.bm-stage.beat{animation:beat .25s ease-out}
+@keyframes beat{0%{box-shadow:inset 0 0 50px rgba(0,0,0,.6),0 0 0 rgba(255,60,60,0)}40%{box-shadow:inset 0 0 70px rgba(255,40,40,.25),0 0 24px rgba(255,60,60,.35)}100%{box-shadow:inset 0 0 50px rgba(0,0,0,.6),0 0 0 rgba(255,60,60,0)}}
+.bm-stage.shake{animation:mshake .5s}
+.bseat{position:absolute;transform:translate(-50%,-50%);width:84px;padding:4px;border:2px solid transparent;border-radius:14px;background:#00000040;color:var(--text);font:inherit;font-size:12px;cursor:default;text-align:center}
+.bseat img{display:block;width:58px;height:52px;object-fit:contain;margin:0 auto}
+.bseat span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bseat .bx{display:none;position:absolute;inset:-20px;place-items:center;font-size:72px;font-style:normal;z-index:3;filter:drop-shadow(0 0 12px rgba(255,120,0,.9))}
+.bseat.me span{color:var(--gold);font-weight:800}
+.bseat.hold{background:#5b1e1e88;border-color:#ff5d6c}
+.bseat.hold img{animation:shake .35s ease-in-out infinite}
+.bseat.target{cursor:pointer;border-color:var(--gold);background:#3a311088;animation:capPop .3s ease-out}
+.bseat.target:hover{transform:translate(-50%,-50%) scale(1.1)}
+.bseat.dead{opacity:.45}.bseat.dead img{filter:grayscale(1);transform:rotate(-15deg)}
+.bseat.blast .bx{display:grid;animation:blastx 2.4s ease-out forwards}
+@keyframes blastx{0%{transform:scale(.3);opacity:1}15%{transform:scale(1.4)}70%{opacity:1}100%{transform:scale(1);opacity:0}}
+.bm-bomb{position:absolute;left:50%;top:50%;width:54px;transform:translate(-50%,-50%) scale(0);transition:left .35s cubic-bezier(.3,1.3,.5,1),top .35s cubic-bezier(.3,1.3,.5,1),transform .3s;z-index:4;pointer-events:none}
+.bm-bomb.on{transform:translate(-50%,-50%) scale(1)}
+.bm-bomb .bsvg{display:block;width:54px;height:68px;animation:blink var(--blink,1s) ease-in-out infinite;filter:drop-shadow(0 4px 4px rgba(0,0,0,.6))}
+.bm-bomb.mine .bsvg{width:66px;height:82px}
+@keyframes blink{0%,100%{filter:drop-shadow(0 4px 4px rgba(0,0,0,.6))}50%{filter:drop-shadow(0 0 14px rgba(255,50,50,1)) brightness(1.35)}}
+.bsvg .spark{animation:spark .18s linear infinite;transform-origin:58px 8px}
+@keyframes spark{0%{transform:scale(1)}50%{transform:scale(1.5)}100%{transform:scale(.9)}}
+.bm-flash{position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0}
+.bm-flash.on{animation:flash 1.2s ease-out}
+@keyframes flash{0%{opacity:1;background:rgba(255,140,40,.8)}100%{opacity:0;background:rgba(255,40,40,0)}}
+.timerbar #bmute{margin-left:8px}
+@media(max-width:520px){.bm-stage{height:360px}.bseat{width:66px;font-size:10px}.bseat img{width:44px;height:40px}}
 /* mines */
 .mn-turn{min-height:52px}
 .mn-tt{text-align:center;font-size:17px;padding:6px 0}
@@ -486,6 +519,7 @@ const GAMES = {
   ,lotto:{ name:'숫자 추첨', icon:'🔮', stk:'heartwave', desc:'1~20 공 중 추첨기에서 공 2개가 나와요. 숫자를 1~3개 고르고 숫자마다 같은 금액을 걸어요. 나온 공과 맞는 숫자 1개당 그 금액의 9.5배를 받아요!' }
   ,plinko:{ name:'플링코', icon:'🌻', stk:'love', desc:'해바라기씨가 핀 사이를 튕기며 떨어져 9칸 중 하나에 들어가요. 가운데는 낮은 배수, 양끝은 최대 10배! 씨앗 1개당 금액과 개수를 정해서 떨어뜨려요.' }
   ,mines:{ name:'지뢰찾기 서바이벌', icon:'💣', stk:'shock', desc:'5×5 보드에 지뢰 5개! 순서대로 칸을 하나씩 열어요. 지뢰를 밟으면 탈락, 최후의 1인이 판돈을 독식해요. 안전 칸이 다 열려도 2명 이상 남으면 새 보드로 결승 라운드!' }
+  ,bomb:{ name:'폭탄 돌리기', icon:'💥', stk:'gloom', desc:'해바라기씨 폭탄을 받으면 2초 뒤부터 다른 햄스터에게 넘길 수 있어요. 폭탄은 8~18초 사이 언제 터질지 몰라요! 터질 때 들고 있으면 탈락, 최후의 1인이 판돈을 독식해요. (3명 이상)' }
 };
 // 경주 캐릭터 20종 (이미지 순서와 같음)
 const AVATAR_NAMES=['햄찌','레드','블루','그린','옐로','리본','신사','셰프','공룡','천사','마법사','탐정','기사','스포츠','시크','딸기','꿀벌','마도로스','털모자','임금님'];
@@ -585,6 +619,7 @@ function validate(type,d,params){
     case 'pd': return (d.c==='C'||d.c==='B')?{c:d.c}:null;
     case 'race': { const h=Math.floor(Number(d.h)), a=toAmt(d.a); return (h>=0&&h<RN&&a!==null&&a>0)?{h,a}:null; }
     case 'duel': { const a=toAmt(d.a); return (HANDS[d.r]&&a!==null)?{r:d.r,a}:null; }
+    case 'bomb': { const t=d&&typeof d.to==='string'?d.to:null; return t?{to:t}:null; }
     case 'mines': { const c=Math.floor(Number(d.cell)); return (c>=0&&c<25)?{cell:c}:null; }
     case 'plinko': { const a=toAmt(d.a), c=Math.floor(Number(d.c)); return (a!==null&&a>0&&c>=1&&c<=PK_MAXBALL)?{a,c}:null; }
     case 'lotto': { const a=toAmt(d.a); if(!Array.isArray(d.nums)||a===null||a<=0) return null;
@@ -790,7 +825,7 @@ let clockOffset=0, mySub={round:-1,data:null}, lastKey='', SEL={}, kicked=false,
 /* ================= 방장(호스트) ================= */
 function newState(code,title,hostPid,hostName){
   return { code, title, hostId:hostPid, phase:'lobby', round:0,
-    settings:{ startMoney:10000, rounds:5, timer:40, fee:1000, pdStake:2000, horses:6, rlTime:60, stakePct:10, diceTime:20, shellTime:5, lottoTime:20, plinkoTime:20, mineFee:1000, mineTurn:5 },
+    settings:{ startMoney:10000, rounds:5, timer:40, fee:1000, pdStake:2000, horses:6, rlTime:60, stakePct:10, diceTime:20, shellTime:5, lottoTime:20, plinkoTime:20, mineFee:1000, mineTurn:5, bombMin:8, bombMax:18 },
     players:{ [hostPid]:{ name:hostName, money:10000, online:true, last:0, av:Math.floor(Math.random()*PLAYER_AV.length) } },
     game:null, result:null };
 }
@@ -843,7 +878,7 @@ function hSettings(k,v){
   const st=HOST.state; if(st.phase!=='lobby') return;
   if(k==='title'){ st.title=String(v).trim().slice(0,30)||'머니 서바이벌'; return changed(); }
   if(k==='bots'){ setBots(Math.min(9,Math.max(1,Math.floor(Number(v))||1))); return changed(); }
-  const lim={ startMoney:[100,1e12], rounds:[1,30], timer:[10,300], fee:[0,1e12], pdStake:[0,1e12], horses:[2,AVATAR_NAMES.length], rlTime:[5,300], diceTime:[5,300], shellTime:[3,60], lottoTime:[5,300], plinkoTime:[5,300], stakePct:[1,100], mineFee:[0,1e12], mineTurn:[3,60] }[k];
+  const lim={ startMoney:[100,1e12], rounds:[1,30], timer:[10,300], fee:[0,1e12], pdStake:[0,1e12], horses:[2,AVATAR_NAMES.length], rlTime:[5,300], diceTime:[5,300], shellTime:[3,60], lottoTime:[5,300], plinkoTime:[5,300], stakePct:[1,100], mineFee:[0,1e12], mineTurn:[3,60], bombMin:[3,60], bombMax:[3,90] }[k];
   if(!lim) return;
   let n=Math.floor(Number(v)); if(!Number.isFinite(n)) return changed();
   n=Math.min(lim[1],Math.max(lim[0],n)); st.settings[k]=n; changed();
@@ -853,14 +888,15 @@ function hStartGame(){ const st=HOST.state; resetMoney(); st.round=0; st.result=
 function hStartRound(type){
   const st=HOST.state; if(st.phase!=='pick'&&st.phase!=='result') return;
   const online=Object.keys(st.players).filter(id=>st.players[id].online);
-  if(type==='random'){ const ks=Object.keys(GAMES).filter(k=>k!=='mines'||online.length>=2); type=ks[Math.floor(Math.random()*ks.length)]; }
+  if(type==='random'){ const ks=Object.keys(GAMES).filter(k=>(k!=='mines'||online.length>=2)&&(k!=='bomb'||online.length>=3)); type=ks[Math.floor(Math.random()*ks.length)]; }
+  if(type==='bomb'&&online.length<3){ toast('폭탄 돌리기는 3명 이상이어야 시작할 수 있어요'); return; }
   if(type==='mines'&&online.length<2){ toast('지뢰찾기 서바이벌은 2명 이상이어야 시작할 수 있어요'); return; }
   const params={};
   // 판돈 자동 조절: 이번 라운드 참가자 보유금 중앙값 × 비율
   const med=stakeBase(online.map(id=>st.players[id].money)), base=niceAmt(med*(st.settings.stakePct||10)/100);
   params.base=base; params.med=niceAmt(med);
   if(type==='unique') params.fee=base;
-  if(type==='mines') params.fee=base;
+  if(type==='mines'||type==='bomb') params.fee=base;
   if(type==='auction') params.m=niceAmt(med);
   if(type==='pd'){ params.stake=base; params.pairs=makePairs(online); }
   if(type==='duel') params.pairs=makePairs(online);
@@ -872,6 +908,7 @@ function hStartRound(type){
   st.game={ type, params, eligible:online, submitted:{}, deadline:Date.now()+secs*1000 };
   if(type==='roulette'||type==='dice'||type==='lotto') st.game.stats={};
   st.result=null; HOST.subs={};
+  if(type==='bomb'){ bInit(st.game); st.phase='play'; changed(); return; }
   if(type==='mines'){ mInit(st.game); st.phase='play'; changed(); return; }
   st.phase='play'; changed();
   scheduleBots();
@@ -904,6 +941,49 @@ function createSingle(name,botCount){
   setBots(botCount);
   ME.pid=pid; ME.code=state.code;
   changed();
+}
+/* ---- 폭탄 돌리기 (실시간) ----
+   판정 규칙: 폭발 시각은 방장만 알고 있음. 방장 시계로 폭발 시각 '이전'에 방장에게 도착한 전달만 유효.
+   폭발 처리와 전달 요청은 방장 쪽에서 도착 순서대로 하나씩 처리되므로 동시에 일어나지 않음. */
+const BOMB_WAIT=2000;
+function bInit(g){
+  const st=HOST.state;
+  g.order=shuffle(g.eligible.slice()); g.alive=g.order.slice(); g.elim=[]; g.roundNo=0; g.passes=0;
+  g.holder=null; g.last=null; g.boom=null; g.deadline=Date.now()+3600e3;
+  g.intro={ kind:'start', until:Date.now()+3000 };
+  mLaterB(3000,()=>bStartRound());
+}
+function mLaterB(ms,fn){ const r=HOST.state.round; setTimeout(()=>{ const st=HOST.state; if(st.round===r&&st.phase==='play'&&st.game&&st.game.type==='bomb') fn(st.game); },ms); }
+function bStartRound(){
+  const st=HOST.state, g=st.game; g.alive=g.alive.filter(id=>st.players[id]);
+  if(g.alive.length<=1){ hClose(); return; }
+  const lo=Math.min(st.settings.bombMin||8,st.settings.bombMax||18), hi=Math.max(st.settings.bombMin||8,st.settings.bombMax||18);
+  g.roundNo++; g.intro=null; g.boom=null; g.last=null;
+  g.holder=g.alive[Math.floor(Math.random()*g.alive.length)]; g.holdSince=Date.now(); g.roundStart=Date.now();
+  HOST.subs.__bomb=Date.now()+Math.round((lo+Math.random()*(hi-lo))*1000);   // 비밀: 폭발 시각
+  const no=g.roundNo; changed(); bBot();
+  setTimeout(function chk(){ const s2=HOST.state, g2=s2.game; if(s2.phase!=='play'||!g2||g2.type!=='bomb'||g2.roundNo!==no||g2.boom) return;
+    if(Date.now()<HOST.subs.__bomb) return setTimeout(chk,HOST.subs.__bomb-Date.now()); bExplode(); },HOST.subs.__bomb-Date.now());
+}
+function bPass(pid,to){
+  const st=HOST.state, g=st.game; if(!g||g.type!=='bomb'||g.boom||g.intro) return;
+  if(g.holder!==pid||to===pid||!g.alive.includes(to)) return;
+  const now=Date.now();
+  if(now>=HOST.subs.__bomb) return;               // 폭발 시각 이후 도착 → 무효
+  if(now<g.holdSince+BOMB_WAIT-150) return;        // 2초 대기 전 (통신 지연 0.15초 허용)
+  g.holder=to; g.holdSince=now; g.passes++; g.last={ from:pid, to, at:now }; changed(); bBot();
+}
+function bBot(){
+  const st=HOST.state, g=st.game, h=g.holder, p=st.players[h]; if(!p||!p.bot) return; const since=g.holdSince;
+  mLaterB(BOMB_WAIT+150+Math.random()*(Math.random()<0.2?4000:1600),g2=>{ if(g2.holder!==h||g2.holdSince!==since||g2.boom) return;
+    const others=g2.alive.filter(id=>id!==h); bPass(h,others[Math.floor(Math.random()*others.length)]); });
+}
+function bExplode(){
+  const st=HOST.state, g=st.game, id=g.holder;
+  g.alive=g.alive.filter(x=>x!==id); g.elim.push({ id, round:g.roundNo });
+  g.boom={ id, at:Date.now(), round:g.roundNo, held:Math.round((Date.now()-g.roundStart)/100)/10 }; g.holder=null; changed();
+  mLaterB(2800,g2=>{ if(g2.alive.length<=1){ mLaterB(400,()=>hClose()); return; }
+    g2.intro={ kind:'next', until:Date.now()+2200 }; changed(); mLaterB(2200,()=>bStartRound()); });
 }
 /* ---- 지뢰찾기 서바이벌 (차례제) ---- */
 function mNewMines(){ HOST.subs.__mines=shuffle(Array.from({length:25},(_,i)=>i)).slice(0,5); }
@@ -948,6 +1028,7 @@ function mPick(pid,cell,auto){
 }
 function hSubmit(pid,data){
   const st=HOST.state; if(st.phase!=='play') return;
+  if(st.game&&st.game.type==='bomb'){ const c=validate('bomb',data); if(c) bPass(pid,c.to); return; }
   if(st.game&&st.game.type==='mines'){ const c=validate('mines',data); if(c) mPick(pid,c.cell,false); return; }
   const g=st.game; if(!g.eligible.includes(pid)||g.submitted[pid]) return;
   const clean=validate(g.type,data,g.params); if(!clean) return;
@@ -959,13 +1040,16 @@ function hSubmit(pid,data){
   if(g.type==='roulette') for(const [k,b] of Object.entries(clean.bets)){ const key=k+':'+b.v; g.stats[key]=(g.stats[key]||0)+1; } changed(); checkAllIn();
 }
 function checkAllIn(){
-  const st=HOST.state; if(st.phase!=='play'||st.game.type==='mines') return;
+  const st=HOST.state; if(st.phase!=='play'||st.game.type==='mines'||st.game.type==='bomb') return;
   const g=st.game, need=g.eligible.filter(id=>st.players[id]&&st.players[id].online);
   if(need.length&&need.every(id=>g.submitted[id])){ const r=st.round; setTimeout(()=>{ if(HOST.state.round===r) hClose(); },900); }
 }
 function hClose(){
   const st=HOST.state; if(st.phase!=='play') return;
-  const g=st.game, res=g.type==='mines'
+  const g=st.game, res=g.type==='bomb'
+    ?{ deltas:minesSettle(g.params.fee,g.order.filter(id=>st.players[id]),g.alive.filter(id=>st.players[id])),
+       detail:{ order:g.order, alive:g.alive.slice(), elim:g.elim, rounds:g.roundNo, passes:g.passes, fee:g.params.fee } }
+    :g.type==='mines'
     ?{ deltas:minesSettle(g.params.fee,g.order.filter(id=>st.players[id]),g.alive.filter(id=>st.players[id])),
        detail:{ order:g.order, alive:g.alive.slice(), elim:g.elim, board:g.board.map((v,i)=>v?{...v}:{mine:HOST.subs.__mines.includes(i)}), mines:HOST.subs.__mines.slice(), fee:g.params.fee, final:g.final } }
     :resolve(g.type,g.params,HOST.subs);
@@ -1139,13 +1223,15 @@ function updateDynamic(){
       <span class="dl ${p.last>0?'up':'down'}">${p.last?signed(p.last):''}</span></div>`; }).join('');
   if(S.phase==='play'){
     const g=S.game, cnt=Object.keys(g.submitted).length, sc=$('#subcount');
-    if(sc) sc.textContent=g.type==='mines'?`생존 ${g.alive.length}/${g.order.length}명`:`${cnt}/${g.eligible.length}명 제출`;
+    if(sc) sc.textContent=(g.type==='mines'||g.type==='bomb')?`생존 ${g.alive.length}/${g.order.length}명`:`${cnt}/${g.eligible.length}명 제출`;
     if(g.type==='mines') mUpdate();
+    if(g.type==='bomb') bUpdate();
     if(g.type==='roulette'||g.type==='dice'||g.type==='lotto') document.querySelectorAll('[data-ck]').forEach(e=>{ const c=(g.stats||{})[e.dataset.ck]; e.textContent=c?c+'명':''; });
     tick();
   }
 }
 function tick(){
+  if(S&&S.phase==='play'&&S.game.type==='bomb') return;
   if(S&&S.phase==='play'&&S.game.type==='mines') return mTick();
   if(!S||S.phase!=='play'||S.game.type==='shell') return; const el=$('#timer'); if(!el) return;
   const rem=Math.max(0,Math.ceil((S.game.deadline-(Date.now()-clockOffset))/1000));
@@ -1166,7 +1252,7 @@ function stageHTML(){
   }
   return '';
 }
-const SETTINGS=[['startMoney','시작 금액'],['rounds','라운드 수'],['timer','제한 시간(초)'],['stakePct','고정 판돈 비율(%)'],['horses','경마 출전 수 (2~20)'],['rlTime','룰렛 베팅 시간(초)'],['diceTime','주사위 홀짝 선택 시간(초)'],['shellTime','야바위 선택 시간(초)'],['lottoTime','숫자 추첨 선택 시간(초)'],['plinkoTime','플링코 베팅 시간(초)'],['mineTurn','지뢰찾기 차례 시간(초)']];
+const SETTINGS=[['startMoney','시작 금액'],['rounds','라운드 수'],['timer','제한 시간(초)'],['stakePct','고정 판돈 비율(%)'],['horses','경마 출전 수 (2~20)'],['rlTime','룰렛 베팅 시간(초)'],['diceTime','주사위 홀짝 선택 시간(초)'],['shellTime','야바위 선택 시간(초)'],['lottoTime','숫자 추첨 선택 시간(초)'],['plinkoTime','플링코 베팅 시간(초)'],['mineTurn','지뢰찾기 차례 시간(초)'],['bombMin','폭탄 최소 시간(초)'],['bombMax','폭탄 최대 시간(초)']];
 function lobbyHTML(){
   const st=S.settings;
   const botCount=Object.values(S.players).filter(p=>p.bot).length;
@@ -1214,6 +1300,7 @@ function describeSub(type,d){
   return '';
 }
 function playHTML(){
+  if(S.game.type==='bomb') return bombPlayHTML();
   if(S.game.type==='mines') return minesPlayHTML();
   const g=S.game, G=GAMES[g.type], elig=g.eligible.includes(ME.pid), done=mySub.round===S.round;
   let extra='';
@@ -1272,6 +1359,8 @@ function bindStage(){
     if(t.dataset.grp){ st.querySelectorAll(`[data-grp="${t.dataset.grp}"]`).forEach(b=>b.classList.toggle('active',b===t)); SEL[t.dataset.grp]=t.dataset.sel; if(t.dataset.grp==='pc') pkTotal(); return; }
     if(t.dataset.pd) return submit({c:t.dataset.pd});
     if(t.dataset.mc) return mClick(+t.dataset.mc);
+    if(t.dataset.bt) return bClick(t.dataset.bt);
+    if(t.id==='bmute') return bToggleMute();
     if(t.dataset.allin){ const a=$('#amt'); if(a) a.value=t.dataset.allin==='lotto'?Math.floor(myMoney()/Math.max(1,(SEL.ln||[]).length)):t.dataset.allin==='plinko'?Math.floor(myMoney()/Math.max(1,+(SEL.pc||1))):myMoney(); lottoTotal(); pkTotal(); return; }
     if(t.dataset.ln) return lottoPick(+t.dataset.ln);
     if(t.dataset.rk) return rlPick(t.dataset.rk,t.dataset.rv);
@@ -1308,7 +1397,7 @@ function resultHTML(){
   const ln=Object.entries(r.loans||{});
   const loanHTML=ln.length?`<div class="loanbox">${stk('cryPuddle','mstk')}<div><b>💳 파산!</b> 보유금을 모두 잃어 빚을 졌어요<div class="deltas">${ln.map(([id,a])=>`<span class="pill">${nameOf(id)} <b class="down">빚 +${fmt(a)}</b></span>`).join('')}</div></div></div>`:'';
   return `<div class="ghead"><div class="gicon">${gimg(G)}</div><div><div class="gname">라운드 ${r.round} 결과 · ${G.name}</div></div></div>
-    <div id="rbody">${resultBody(r)}</div><div id="reveal" class="hidden">${r.type==='race'?raceReveal(r.detail):r.type==='roulette'?rlReveal(r.detail):r.type==='dice'?diceReveal(r.detail):r.type==='shell'?shellReveal(r.detail):r.type==='lotto'?lottoReveal(r.detail):r.type==='plinko'?pkReveal(r.detail):r.type==='mines'?minesReveal(r.detail):`<div class="sec">📋 결과 요약</div>${resultBodyOld(r)}`}${loanHTML}${deltas}${next}</div>`;
+    <div id="rbody">${resultBody(r)}</div><div id="reveal" class="hidden">${r.type==='race'?raceReveal(r.detail):r.type==='roulette'?rlReveal(r.detail):r.type==='dice'?diceReveal(r.detail):r.type==='shell'?shellReveal(r.detail):r.type==='lotto'?lottoReveal(r.detail):r.type==='plinko'?pkReveal(r.detail):r.type==='mines'?minesReveal(r.detail):r.type==='bomb'?bombReveal(r.detail):`<div class="sec">📋 결과 요약</div>${resultBodyOld(r)}`}${loanHTML}${deltas}${next}</div>`;
 }
 const SHOW_TYPES=['unique','auction','pd','duel'];
 function resultBody(r){ return SHOW_TYPES.includes(r.type)?showStage(r):resultBodyOld(r); }
@@ -1352,7 +1441,7 @@ function resultBodyOld(r){
   if(r.type==='shell') return shellResultStage(r.detail);
   if(r.type==='lotto') return lottoStageHTML(r.detail);
   if(r.type==='plinko') return pkStageHTML(r.detail);
-  if(r.type==='mines') return `<div class="showcap" id="showcap">🏁 게임 종료!</div>`;
+  if(r.type==='mines'||r.type==='bomb') return `<div class="showcap" id="showcap">🏁 게임 종료!</div>`;
   if(r.type==='duel'){
     const face=dv=>dv>0?'excited':dv<0?'cry':'shrug';
     const side=(h,a,m)=>`${HANDS[h]} · ${fmt(a)}원${m?' <span class="muted">(미제출)</span>':''}`;
@@ -1379,6 +1468,7 @@ function afterStage(){
   if(S.phase==='result'&&S.result.type==='lotto') runLotto();
   if(S.phase==='result'&&S.result.type==='plinko') runPlinko();
   if(S.phase==='result'&&S.result.type==='mines') runMinesResult();
+  if(S.phase==='result'&&S.result.type==='bomb') runMinesResult();
   if(S.phase==='play'&&S.game.type==='shell') runShellPlay();
   if(S.phase==='play'&&S.game.type==='plinko'&&$('#pktotal')){ SEL.pc='1'; pkTotal(); const a=$('#amt'); if(a) a.oninput=pkTotal; }
   if(S.phase==='play'&&S.game.type==='lotto'&&$('#lttotal')){ SEL.ln=[]; lottoTotal(); const a=$('#amt'); if(a) a.oninput=lottoTotal; }
@@ -1569,6 +1659,88 @@ function runRace(){
   }
   requestAnimationFrame(frame);
 }
+/* ===== 폭탄 돌리기 화면 ===== */
+const BOMB_SVG=`<svg viewBox="0 0 64 80" class="bsvg"><path d="M40 14 Q50 2 58 8" stroke="#8a6a3a" stroke-width="3" fill="none"/><g class="spark"><circle cx="58" cy="8" r="5" fill="#ffd34d"/><circle cx="58" cy="8" r="2.5" fill="#fff"/></g>
+  <path d="M30 16C50 28 52 56 30 76C8 56 10 28 30 16Z" fill="#2a2a2e" stroke="#0d0d10" stroke-width="2.5"/><path d="M30 22V70" stroke="#efe8d0" stroke-width="4" stroke-linecap="round"/><path d="M21 30Q19 46 23 62M39 30Q41 46 37 62" stroke="#cfc6a8" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+  <rect x="24" y="12" width="12" height="7" rx="2" fill="#666"/></svg>`;
+let B_PREV=null, B_AUDIO=null, B_LOOP=null;
+const bMuted=()=>{ try{ return localStorage.getItem('msurv-mute')==='1'; }catch(e){ return false; } };
+function bToggleMute(){ try{ localStorage.setItem('msurv-mute',bMuted()?'0':'1'); }catch(e){} const b=$('#bmute'); if(b) b.textContent=bMuted()?'🔇 소리 꺼짐':'🔊 심장 소리'; }
+function bBeat(strong){ if(bMuted()) return; try{ B_AUDIO=B_AUDIO||new (window.AudioContext||window.webkitAudioContext)(); const a=B_AUDIO, t=a.currentTime;
+  [[0,1],[0.16,0.6]].forEach(([dt,v])=>{ const o=a.createOscillator(), g=a.createGain(); o.type='sine'; o.frequency.setValueAtTime(strong?75:60,t+dt); o.frequency.exponentialRampToValueAtTime(38,t+dt+0.12);
+    g.gain.setValueAtTime(0.0001,t+dt); g.gain.exponentialRampToValueAtTime(0.5*v,t+dt+0.015); g.gain.exponentialRampToValueAtTime(0.0001,t+dt+0.16); o.connect(g).connect(a.destination); o.start(t+dt); o.stop(t+dt+0.2); }); }catch(e){} }
+function bBoomSound(){ if(bMuted()) return; try{ B_AUDIO=B_AUDIO||new (window.AudioContext||window.webkitAudioContext)(); const a=B_AUDIO, t=a.currentTime, n=a.sampleRate*0.6, buf=a.createBuffer(1,n,a.sampleRate), d=buf.getChannelData(0);
+  for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/n,2.2); const src=a.createBufferSource(), g=a.createGain(), f=a.createBiquadFilter(); f.type='lowpass'; f.frequency.value=700; src.buffer=buf; g.gain.value=0.9; src.connect(f).connect(g).connect(a.destination); src.start(t); }catch(e){} }
+const seatPos=(i,n)=>{ const a=-Math.PI/2+i*2*Math.PI/n; return [50+40*Math.cos(a),50+37*Math.sin(a)]; };
+function bombPlayHTML(){
+  const g=S.game, G=GAMES.bomb; B_PREV=null;
+  const n=g.order.length;
+  return `<div class="ghead"><div class="gicon">${gimg(G)}</div><div><div class="gname">라운드 ${S.round} · ${G.name}</div>
+      <div class="gdesc">참가비 <b>${fmt(g.params.fee)}원</b> × ${n}명 = 판돈 <b class="up">${fmt(g.params.fee*n)}원</b> · 폭탄은 ${S.settings.bombMin||8}~${S.settings.bombMax||18}초 사이에 터져요 · 받은 뒤 <b>2초</b>가 지나야 넘길 수 있어요<br>
+      <span class="muted">⏱ 판정: 방장 기기 시계 기준으로 폭발 순간보다 늦게 도착한 전달은 무효예요.</span></div></div></div>
+    <div class="timerbar"><div class="timer" id="timer">???</div><div class="muted" id="subcount"></div><button class="btn sm" id="bmute">${bMuted()?'🔇 소리 꺼짐':'🔊 심장 소리'}</button></div>
+    <div class="bm-msg" id="bmsg"></div>
+    <div class="bm-stage" id="bstage">
+      ${g.order.map((id,i)=>{ const [x,y]=seatPos(i,n); return `<button class="bseat" data-bt="${id}" style="left:${x}%;top:${y}%"><img src="${PLAYER_AV[avIdx(id)]}" alt=""><span>${plainName(id)}</span><i class="bx">💥</i></button>`; }).join('')}
+      <div class="bm-bomb" id="bbomb">${BOMB_SVG}</div><div class="bm-flash" id="bflash"></div><div class="mn-intro" id="bintro"></div>
+    </div>
+    ${ME.isHost?`<button class="btn ghost" id="closeBtn">⏹ 지금 마감하기 (탈락자 참가비를 생존자끼리 나눔)</button>`:''}`;
+}
+function bUpdate(){
+  const g=S.game, st=$('#bstage'); if(!st) return;
+  const n=g.order.length, seats=[...st.querySelectorAll('.bseat')], me=ME.pid, hostNow=Date.now()-clockOffset;
+  const canPass=g.holder===me&&!g.boom&&!g.intro&&hostNow>=g.holdSince+BOMB_WAIT;
+  seats.forEach(b=>{ const id=b.dataset.bt, dead=!g.alive.includes(id);
+    b.classList.toggle('dead',dead); b.classList.toggle('hold',g.holder===id); b.classList.toggle('me',id===me);
+    b.classList.toggle('target',canPass&&!dead&&id!==me); b.disabled=!(canPass&&!dead&&id!==me); });
+  // 폭탄 위치
+  const bomb=$('#bbomb');
+  if(g.holder){ const i=g.order.indexOf(g.holder), [x,y]=seatPos(i,n); bomb.style.left=x+'%'; bomb.style.top=(y-9)+'%'; bomb.classList.add('on'); bomb.classList.toggle('mine',g.holder===me); }
+  else if(!g.boom) bomb.classList.remove('on');
+  // 새 폭발 감지
+  const sig=g.boom?g.boom.round+':'+g.boom.id:'';
+  if(B_PREV!==null&&sig&&sig!==B_PREV){ const seat=seats.find(b=>b.dataset.bt===g.boom.id), fl=$('#bflash');
+    bomb.classList.remove('on'); seat.classList.add('blast'); burst(seat,['💥','🔥','💨','🌻'],18); bBoomSound();
+    st.classList.remove('shake'); void st.offsetWidth; st.classList.add('shake'); fl.classList.remove('on'); void fl.offsetWidth; fl.classList.add('on'); }
+  B_PREV=sig;
+  // 안내 문구
+  const msg=$('#bmsg');
+  if(msg){ if(g.intro) msg.innerHTML='';
+    else if(g.boom) msg.innerHTML=`<div class="bm-t boom">💥 펑!! <b>${nameOf(g.boom.id)}</b> 님 탈락! <span class="muted">(${g.boom.held}초 만에 폭발)</span></div>`;
+    else if(g.holder===me) msg.innerHTML=canPass?`<div class="bm-t me">💣 폭탄이 나한테! <b>👉 넘길 햄스터를 누르세요!</b></div>`:`<div class="bm-t me">💣 폭탄이 나한테! <b id="bwait">${Math.max(0,(g.holdSince+BOMB_WAIT-hostNow)/1000).toFixed(1)}초</b> 후 넘길 수 있어요</div>`;
+    else if(g.holder) msg.innerHTML=`<div class="bm-t"><b>${nameOf(g.holder)}</b> 님이 폭탄을 들고 있어요…</div>`; }
+  const intro=$('#bintro');
+  if(intro){ if(g.intro){ intro.className='mn-intro on';
+      intro.innerHTML=g.intro.kind==='start'?`<div class="mi-t">💣 폭탄 돌리기!</div><div>폭탄을 받으면 2초 뒤부터 넘길 수 있어요<br>언제 터질지는 아무도 몰라요…</div>`
+        :`<div class="mi-t">🔁 라운드 ${g.roundNo+1}</div><div>생존자 <b>${g.alive.length}명</b>으로 새 폭탄을 돌려요!</div>`; }
+    else intro.className='mn-intro'; }
+  const tm=$('#timer'); if(tm) tm.textContent=g.intro?'준비':g.boom?'펑!':'???';
+  const sc=$('#subcount'); if(sc) sc.textContent=`라운드 ${Math.max(1,g.roundNo)} · 생존 ${g.alive.length}/${n}명`;
+  bLoop();
+}
+// 심장박동 + 깜빡임: 라운드 경과 시간에 따라 점점 빨라짐 (남은 시간은 모름)
+function bLoop(){ if(B_LOOP) return; let next=0; const key=lastKey;
+  const f=()=>{ if(lastKey!==key||!S||S.phase!=='play'||S.game.type!=='bomb'){ B_LOOP=null; return; }
+    const g=S.game, bomb=$('#bbomb'), now=Date.now()-clockOffset;
+    if(g.holder&&!g.boom&&!g.intro){ const el=(now-g.roundStart)/1000, iv=Math.max(0.28,1.05-el*0.045);
+      if(bomb) bomb.style.setProperty('--blink',(iv*0.9).toFixed(2)+'s');
+      if(performance.now()>=next){ bBeat(el>8); next=performance.now()+iv*1000; const stg=$('#bstage'); if(stg){ stg.classList.remove('beat'); void stg.offsetWidth; stg.classList.add('beat'); } }
+      const w=$('#bwait'); if(w){ const r=(g.holdSince+BOMB_WAIT-now)/1000; if(r<=0) bUpdate(); else w.textContent=r.toFixed(1)+'초'; } }
+    B_LOOP=requestAnimationFrame(f); };
+  B_LOOP=requestAnimationFrame(f); }
+function bClick(to){
+  const g=S.game; if(!g||g.type!=='bomb') return;
+  if(g.holder!==ME.pid) return; if(to===ME.pid||!g.alive.includes(to)) return;
+  if(ME.isHost) hSubmit(ME.pid,{to}); else if(CL&&CL.conn&&CL.conn.open) CL.conn.send({t:'act',round:S.round,data:{to}}); else toast('연결이 끊겨 넘기지 못했어요');
+}
+function bombReveal(d){
+  const win=d.alive.length===1?d.alive[0]:null, pot=d.fee*d.order.length;
+  return `<div class="announce">${stk('sparkle','rx bounce')}${win?`최후의 생존자<big>${nameOf(win)}</big>판돈 <b class="up">${fmt(pot)}원</b> 독식!`:`생존자 <b>${d.alive.length}명</b>이 탈락자 참가비를 나눠 가져요`}
+    <div class="muted" style="font-size:14px">라운드 ${d.rounds}번 · 폭탄 전달 ${d.passes}번</div></div>
+    <div class="sec">탈락 순서</div><div class="list">${d.elim.map((e,i)=>`<div class="li"><span>💥 ${i+1}번째 탈락 (라운드 ${e.round}) · ${nameOf(e.id)}</span><b class="down">-${fmt(d.fee)}</b></div>`).join('')}
+      ${d.alive.map(id=>`<div class="li win"><span>🏆 생존 · ${nameOf(id)}</span><b class="up">+${fmt(Math.floor(d.fee*(d.order.length-d.alive.length)/Math.max(1,d.alive.length)))}</b></div>`).join('')}</div>`;
+}
+
 /* ===== 지뢰찾기 서바이벌 화면 ===== */
 let M_PREV=null;
 function minesPlayHTML(){
