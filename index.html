@@ -167,6 +167,20 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#000c;color:#fff;padding:10px 16px;border-radius:10px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.show{opacity:1}
 .center{text-align:center;padding:40px 16px}
+/* auction tie lottery */
+.au-bid.tie{outline:2px dashed #ff8a95}
+.au-bid.tie::after{content:'동점';position:absolute;left:-6px;top:-10px;font-size:11px;font-weight:900;background:#ff5d6c;color:#fff;padding:1px 6px;border-radius:6px}
+.lotto{position:relative;display:none;margin:4px 0 14px;padding:14px;border-radius:16px;background:linear-gradient(180deg,#2b1a3a,#1a1226);border:2px solid #7b4bb0;text-align:center}
+.lotto.show{display:block;animation:capPop .4s ease-out}
+.lt-title{font-weight:900;color:#e6c8ff;margin-bottom:10px}
+.lt-row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.lt-card{position:relative;width:110px;padding:10px 6px;border-radius:12px;background:#241a33;border:2px solid #3e2e57;transition:transform .08s,background .08s}
+.lt-card .sav{display:block;width:62px;height:56px;margin:0 auto 4px}
+.lt-card span{font-size:13px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lt-card.on{background:#5b3a12;border-color:var(--gold);transform:scale(1.1);box-shadow:0 0 22px rgba(245,197,66,.7)}
+.lotto.done .lt-card:not(.on){opacity:.35;filter:grayscale(1)}
+.lotto.done .lt-card.on{animation:cheer .7s ease-in-out infinite}
+.lotto.done .lt-card.on::after{content:'당첨!';position:absolute;right:-8px;top:-12px;background:#d62e3d;color:#fff;font-weight:900;font-size:12px;padding:2px 8px;border-radius:6px;transform:rotate(12deg)}
 /* debt */
 .mn small.debt{display:block;font-size:11px;font-weight:700;color:var(--red);line-height:1.1}
 .amtrow{display:flex;gap:8px}.amtrow input{flex:1}
@@ -338,7 +352,7 @@ const AVATAR_FEVER=["data:image/webp;base64,UklGRpgtAABXRUJQVlA4WAoAAAAQAAAA9gAA
 // ===== LOGIC START =====
 const GAMES = {
   unique:  { name:'최소 유일 숫자', icon:'🔢', stk:'think', desc:'참가비를 내고 1~50 중 숫자 하나를 고르세요. 다른 사람과 겹치지 않는 숫자 중 가장 작은 숫자를 고른 사람이 판돈을 모두 가져갑니다.' },
-  auction: { name:'눈치 경매', icon:'📦', stk:'box', desc:'상자 안에는 -10,000 ~ 50,000원 사이의 금액이 들어 있어요. 가장 높은 금액을 쓴 사람이 그 금액을 내고 상자를 가져갑니다. (동점이면 먼저 낸 사람)' },
+  auction: { name:'눈치 경매', icon:'📦', stk:'box', desc:'상자 안에는 -10,000 ~ 50,000원 사이의 금액이 들어 있어요. 가장 높은 금액을 쓴 사람이 그 금액을 내고 상자를 가져갑니다. (최고가가 동점이면 동점자 중 랜덤 추첨!)' },
   pd:      { name:'협력 / 배신', icon:'🤝', stk:'heart', desc:'랜덤으로 짝을 지어요. 둘 다 협력하면 둘 다 이득, 둘 다 배신하면 둘 다 손해, 한 명만 배신하면 배신자가 크게 벌고 협력한 쪽이 크게 잃어요.' },
   race:    { name:'경마 베팅', icon:'🏇', stk:'flyCape', desc:'우승할 말 한 마리에 원하는 만큼 거세요. 맞히면 배당만큼 돌려받고, 틀리면 건 돈을 잃어요.' },
   duel:    { name:'1:1 대결', icon:'⚔️', stk:'boxRed', desc:'랜덤으로 짝을 지어 가위바위보! 각자 금액을 쓰면 둘 중 더 큰 금액이 판돈이 되고, 이긴 사람이 진 사람에게서 판돈만큼 가져갑니다.' }
@@ -462,10 +476,15 @@ function resolve(type,params,subs){
   }
   if(type==='auction'){
     const box=rollBox();
-    const bids=Object.entries(subs).map(([id,s])=>({id,bid:s.bid,ts:s.ts||0})).sort((a,b)=>b.bid-a.bid||a.ts-b.ts);
-    let winner=null;
-    if(bids.length&&bids[0].bid>0){ winner=bids[0].id; add(winner,box-bids[0].bid); }
-    return { deltas, detail:{ box, winner, bids:bids.map(b=>({id:b.id,bid:b.bid})) } };
+    const bids=shuffle(Object.entries(subs).map(([id,s])=>({id,bid:s.bid}))).sort((a,b)=>b.bid-a.bid);
+    let winner=null, tie=null;
+    if(bids.length&&bids[0].bid>0){
+      const top=bids[0].bid, tied=bids.filter(b=>b.bid===top).map(b=>b.id);
+      winner=tied[Math.floor(Math.random()*tied.length)];   // 최고가 동점이면 동점자 중 랜덤 추첨
+      if(tied.length>1) tie=tied;
+      add(winner,box-top);
+    }
+    return { deltas, detail:{ box, winner, bids, tie, seed:Math.floor(Math.random()*2147483647) } };
   }
   if(type==='pd'){
     const S=params.stake;
@@ -1018,12 +1037,12 @@ function resultBodyOld(r){
     return head+`<div class="sec">모두의 선택 (초록 = 유일, 줄 = 겹침)</div><div class="nums">${chips}</div>`;
   }
   if(r.type==='auction'){
-    const w=d.bids[0], prof=d.winner?d.box-w.bid:0;
+    const w=d.bids.find(b=>b.id===d.winner)||d.bids[0], prof=d.winner?d.box-w.bid:0;
     const react=!d.winner?'shrug':d.box<0?'shock':prof>0?'sparkle':prof===0?'shrug':'cryPuddle';
     const head=d.winner
-      ?`<div class="announce">${stk(react,'rx'+(prof>0?' bounce':''))}상자 안의 금액은…<big>${fmt(d.box)}원</big><b>${nameOf(d.winner)}</b> 님이 ${fmt(w.bid)}원에 낙찰 → <b class="${prof>=0?'up':'down'}">${signed(prof)}</b></div>`
+      ?`<div class="announce">${stk(react,'rx'+(prof>0?' bounce':''))}상자 안의 금액은…<big>${fmt(d.box)}원</big><b>${nameOf(d.winner)}</b> 님이 ${fmt(w.bid)}원에 낙찰${d.tie?` <span class="pill">🎰 ${d.tie.length}명 동점 추첨</span>`:''} → <b class="${prof>=0?'up':'down'}">${signed(prof)}</b></div>`
       :`<div class="announce">${stk(react)}입찰자가 없었어요. 상자 안에는<big>${fmt(d.box)}원</big></div>`;
-    return head+(d.bids.length?`<div class="sec">입찰 내역</div><div class="list">${d.bids.map((b,i)=>`<div class="li ${i===0&&d.winner?'win':''}"><span>${nameOf(b.id)}</span><b>${fmt(b.bid)}원</b></div>`).join('')}</div>`:'');
+    return head+(d.bids.length?`<div class="sec">입찰 내역</div><div class="list">${d.bids.map(b=>`<div class="li ${b.id===d.winner?'win':''}"><span>${nameOf(b.id)}${d.tie&&d.tie.includes(b.id)?' <span class="muted">(동점)</span>':''}</span><b>${fmt(b.bid)}원</b></div>`).join('')}</div>`:'');
   }
   if(r.type==='pd'){
     const face=(me,ot)=>me==='C'&&ot==='C'?'hugHeart':me==='B'&&ot==='C'?'laugh':me==='C'?'cryPuddle':'angry';
@@ -1100,8 +1119,9 @@ function showStage(r){
   }
   if(r.type==='auction'){
     const asc=d.bids.slice().reverse();
-    return `<div class="showcap" id="showcap">입찰 금액을 공개합니다!</div>
-      <div class="au-wrap"><div class="au-bids">${asc.length?asc.map((b,i)=>`<div class="au-bid" data-i="${i}">${avTag(b.id)}<span class="nm2">${plainName(b.id)}</span><b>${fmt(b.bid)}원</b><span class="stamp">낙찰!</span></div>`).join(''):'<div class="muted">입찰자가 없어요</div>'}</div>
+    const lotto=d.tie?`<div class="lotto" id="lotto"><div class="lt-title">🎰 동점자 랜덤 추첨</div><div class="lt-row">${d.tie.map(id=>`<div class="lt-card" data-id="${id}">${avTag(id)}<span>${plainName(id)}</span></div>`).join('')}</div></div>`:'';
+    return `<div class="showcap" id="showcap">입찰 금액을 공개합니다!</div>${lotto}
+      <div class="au-wrap"><div class="au-bids">${asc.length?asc.map((b,i)=>`<div class="au-bid" data-i="${i}" data-id="${b.id}">${avTag(b.id)}<span class="nm2">${plainName(b.id)}</span><b>${fmt(b.bid)}원</b><span class="stamp">낙찰!</span></div>`).join(''):'<div class="muted">입찰자가 없어요</div>'}</div>
       <div class="au-box" id="aubox"><img class="au-img" src="${STK.box}" alt=""><div class="au-val" id="auval">?</div></div></div>${SKIP}`;
   }
   if(r.type==='pd'){
@@ -1141,12 +1161,33 @@ function runShow(r){
   }
   if(r.type==='auction'){
     const bids=[...document.querySelectorAll('.au-bid')], box=$('#aubox'), val=$('#auval');
-    const prof=d.winner?d.box-d.bids[0].bid:0;
+    const wb=d.bids.find(b=>b.id===d.winner), prof=d.winner?d.box-wb.bid:0;
+    const wRow=bids.find(b=>b.dataset.id===d.winner);
     const step=Math.min(450,3500/Math.max(1,bids.length));
-    sh.onEnd=()=>{ bids.forEach(b=>b.classList.add('in')); if(d.winner) bids[bids.length-1].classList.add('win'); box.classList.remove('shake'); box.classList.add('open',d.box<0?'neg':'pos'); val.textContent=fmt(d.box)+'원'; };
+    const lotto=$('#lotto'), cards=lotto?[...lotto.querySelectorAll('.lt-card')]:[];
+    sh.onEnd=()=>{ bids.forEach(b=>{ b.classList.add('in'); if(d.tie&&d.tie.includes(b.dataset.id)) b.classList.add('tie'); }); if(wRow) wRow.classList.add('win');
+      if(lotto){ lotto.classList.add('show','done'); cards.forEach(c=>c.classList.toggle('on',c.dataset.id===d.winner)); }
+      box.classList.remove('shake'); box.classList.add('open',d.box<0?'neg':'pos'); val.textContent=fmt(d.box)+'원'; };
     bids.forEach((b,i)=>sh.at(300+i*step,()=>b.classList.add('in')));
     let t=300+bids.length*step+300;
-    if(d.winner){ sh.at(t,()=>{ bids[bids.length-1].classList.add('win'); sh.cap(`🔨 <b>${plainName(d.winner)}</b> 님이 ${fmt(d.bids[0].bid)}원에 낙찰!`,'good'); }); t+=1300; }
+    if(d.tie){
+      // 동점! → 추첨기 등장 → 하이라이트가 빙글빙글 돌다 점점 느려지며 당첨자에서 멈춤 (seed로 모두 같은 장면)
+      sh.at(t,()=>{ bids.forEach(b=>{ if(d.tie.includes(b.dataset.id)) b.classList.add('tie'); }); burst(lotto,['❗','⚡'],8);
+        sh.cap(`😲 최고가 <b>${fmt(wb.bid)}원</b> 동점! ${d.tie.length}명 중 랜덤 추첨!`,'bad'); });
+      t+=1400; sh.at(t,()=>{ lotto.classList.add('show'); sh.cap('🎰 두구두구두구…'); });
+      const rnd=mulberry32(d.seed), n=cards.length, wi=d.tie.indexOf(d.winner);
+      let idx=Math.floor(rnd()*n); const loops=3+Math.floor(rnd()*2);
+      const total=loops*n+((wi-idx+n)%n||n);
+      let tt=t+500;
+      for(let k=1;k<=total;k++){
+        const p=k/total, gap=60+Math.pow(p,3)*520; tt+=gap; const cur=(idx+k)%n;
+        sh.at(tt,()=>cards.forEach((c,j)=>c.classList.toggle('on',j===cur)));
+      }
+      t=tt+250;
+      sh.at(t,()=>{ lotto.classList.add('done'); const c=cards[wi]; burst(c,['🎉','✨','💰'],14);
+        sh.cap(`🎉 당첨! <b>${plainName(d.winner)}</b> 님이 ${fmt(wb.bid)}원에 낙찰!`,'good'); if(wRow) wRow.classList.add('win'); });
+      t+=1700;
+    } else if(d.winner){ sh.at(t,()=>{ if(wRow) wRow.classList.add('win'); sh.cap(`🔨 <b>${plainName(d.winner)}</b> 님이 ${fmt(wb.bid)}원에 낙찰!`,'good'); }); t+=1300; }
     sh.at(t,()=>{ box.classList.add('shake'); sh.cap('📦 상자를 여는 중… 두근두근'); }); t+=1800;
     sh.at(t,()=>{ box.classList.remove('shake'); box.classList.add('open',d.box<0?'neg':'pos'); countUp(val,d.box,900);
       burst(box,d.box<0?['💸','💀','😱']:d.box===0?['💨']:['💰','🪙','✨'],d.box===0?6:16);
