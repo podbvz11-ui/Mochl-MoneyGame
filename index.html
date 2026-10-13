@@ -196,6 +196,9 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .lane.mine .hn{color:var(--gold)}
 .lv.mine{outline:2px solid var(--gold)}
 /* hide-money mode */
+.wallet{margin-bottom:10px;padding:10px 12px;border-radius:12px;background:#2a2410;border:1px solid #6b5a1a}
+.wl-t{display:flex;align-items:center;gap:6px;font-size:13px}.wl-t .btn{margin-left:auto;padding:3px 8px;font-size:12px}
+.wl-v{margin-top:4px;font-size:20px}.wl-v .debt{font-size:13px;color:var(--red)}
 label.chk{display:flex;align-items:flex-start;gap:8px;margin:10px 0 4px;padding:10px 12px;border-radius:10px;background:var(--card2);color:var(--text);font-size:14px;cursor:pointer}
 label.chk input{width:18px;height:18px;margin-top:2px;accent-color:var(--gold)}
 .mn.hid{color:var(--muted);font-size:14px}
@@ -939,8 +942,10 @@ function botMove(type,money,params){
 const PREFIX='msurv-v1-';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fmt=n=>Number(n).toLocaleString('ko-KR');
-const signed=n=>(n>0?'+':'')+fmt(n);
+const LOCKED=n=>n==null||(n!==0&&Math.abs(n)<1e-6);
+const fmt=n=>LOCKED(n)?'🔒':Number(n).toLocaleString('ko-KR');
+const signed=n=>LOCKED(n)?'🔒':(n>0?'+':'')+fmt(n);
+const sgn0=n=>LOCKED(n)?'🔒':n?signed(n):'±0';
 const rid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
 const store={ get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} } };
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2400); }
@@ -962,13 +967,35 @@ function newState(code,title,hostPid,hostName){
     game:null, result:null };
 }
 let bcTimer=null;
+// 순위만 공개 모드: 받는 사람(pid) 이외 참가자의 보유금·빚·손익·베팅액·보상을 상태에서 삭제 (최종 결과 때만 공개)
+function redactFor(src,pid){
+  if(!src||!src.settings||!src.settings.hideMoney||src.phase==='final') return JSON.parse(JSON.stringify(src));
+  const s=JSON.parse(JSON.stringify(src)), P=src.players||{}, ids=Object.keys(P);
+  const nw=p=>p.money-(p.debt||0), pw=p=>p.prev?p.prev.m-p.prev.d:nw(p);
+  const o1=ids.slice().sort((a,b)=>nw(P[b])-nw(P[a])||P[b].money-P[a].money), o0=ids.slice().sort((a,b)=>pw(P[b])-pw(P[a]));
+  for(const [id,p] of Object.entries(s.players||{})){ p.rk=o1.indexOf(id); p.rkPrev=o0.indexOf(id); if(id!==pid){ p.money=null; p.debt=null; p.last=null; p.prev=null; } }
+  if(s.game&&s.game.params) delete s.game.params.med;
+  const r=s.result;
+  if(r){ r.deltas=r.deltas&&(pid in r.deltas)?{[pid]:r.deltas[pid]}:{};
+    if(r.loans) r.loans=(pid in r.loans)?{[pid]:r.loans[pid]}:{};
+    const d=r.detail||{}; delete d.med;
+    const sg=v=>v==null?null:v>0?1e-9:v<0?-1e-9:0;
+    const scrub=(o,keys)=>{ if(o&&o.id!==undefined&&o.id!==pid) keys.forEach(k=>{ if(k in o) o[k]=(k==='d'?sg(o[k]):null); }); };
+    (d.rows||[]).forEach(x=>{ scrub(x,['a','d','pay','bid']); if(x.items&&x.id!==pid) x.items.forEach(it=>{ it.a=null; it.d=sg(it.d); }); });
+    (d.bets||[]).forEach(x=>scrub(x,['a','d']));
+    (d.bids||[]).forEach(x=>scrub(x,['bid'])); if(d.bids&&d.bids.length>1&&d.winner){ const w=d.bids.find(b=>b.id===d.winner); d.bids=[w,...shuffle(d.bids.filter(b=>b!==w))]; }
+    if(r.type==='duel') (d.rows||[]).forEach(x=>{ if(x.a!==pid){ x.aa=null; x.da=sg(x.da); } if(x.b!==pid){ x.ab=null; x.db=sg(x.db); } if(x.a!==pid&&x.b!==pid) x.stake=null; });
+    if(r.type==='pd') (d.rows||[]).forEach(x=>{ if(x.a!==pid) x.da=sg(x.da); if(x.b!==pid) x.db=sg(x.db); });
+  }
+  return s;
+}
 function changed(){
   const st=HOST.state;
   if(!st.single) store.set('msurv-host',{ code:st.code, state:st, subs:HOST.subs, banned:[...HOST.banned], t:Date.now() });
-  S=JSON.parse(JSON.stringify(st)); clockOffset=0;
+  S=redactFor(st,ME.pid); clockOffset=0;
   if(S.phase==='lobby') mySub={round:-1,data:null};
   render();
-  if(!bcTimer) bcTimer=setTimeout(()=>{ bcTimer=null; const msg={t:'state',s:HOST.state,now:Date.now()}; for(const c of HOST.conns.keys()) if(c.open) try{ c.send(msg); }catch(e){} },80);
+  if(!bcTimer) bcTimer=setTimeout(()=>{ bcTimer=null; const now=Date.now(); for(const [c,pid] of HOST.conns) if(c.open) try{ c.send({t:'state',s:redactFor(HOST.state,pid),now}); }catch(e){} },80);
 }
 function pickAv(){
   const used=new Set(Object.values(HOST.state.players).map(p=>p.av));
@@ -1026,7 +1053,9 @@ function hStartRound(type){
   if(type==='mines'&&online.length<2){ toast('지뢰찾기 서바이벌은 2명 이상이어야 시작할 수 있어요'); return; }
   const params={};
   // 판돈 자동 조절: 이번 라운드 참가자 보유금 중앙값 × 비율
-  const med=stakeBase(online.map(id=>st.players[id].money)), base=niceAmt(med*(st.settings.stakePct||10)/100);
+  let med=stakeBase(online.map(id=>st.players[id].money));
+  if(st.settings.hideMoney){ const e=Math.pow(10,Math.floor(Math.log10(Math.max(1,med)))), m=med/e; med=(m<1.5?1:m<3.5?2:m<7.5?5:10)*e; }
+  const base=niceAmt(med*(st.settings.stakePct||10)/100);
   params.base=base; params.med=niceAmt(med);
   if(type==='unique') params.fee=base;
   if(type==='mines'||type==='bomb'||type==='react') params.fee=base;
@@ -1370,7 +1399,7 @@ function render(){
     $('#board').onclick=e=>{ const k=e.target.closest('[data-kick]'); if(k&&ME.isHost) hKick(k.dataset.kick); };
   }
   const key=stageKey();
-  if(key!==lastKey){ lastKey=key; SEL={}; RACING=false; $('#stage').innerHTML=stageHTML(); bindStage(); afterStage(); }
+  if(key!==lastKey){ lastKey=key; SEL={}; RACING=false; $('#stage').innerHTML=stageHTML().replace(/🔒원/g,'🔒'); bindStage(); afterStage(); }
   updateDynamic();
 }
 function stageKey(){
@@ -1394,8 +1423,9 @@ function updateDynamic(){
   // 경주 중에는 결과가 미리 보이지 않도록 경주 전 금액으로 표시
   const cur=id=>{ const p=S.players[id]; return RACING&&p.prev?{m:p.prev.m,d:p.prev.d}:{m:p.money,d:p.debt||0}; };
   const net=id=>{ const c=cur(id); return c.m-c.d; };
-  const ids=Object.keys(S.players).sort((a,b)=>net(b)-net(a)||cur(b).m-cur(a).m);
   const HIDE=S.settings.hideMoney&&S.phase!=='final';
+  const ids=HIDE?Object.keys(S.players).sort((a,b)=>RACING?(S.players[a].rkPrev-S.players[b].rkPrev):(S.players[a].rk-S.players[b].rk))
+                :Object.keys(S.players).sort((a,b)=>net(b)-net(a)||cur(b).m-cur(a).m);
   $('#board').innerHTML=ids.map((id,i)=>{ const c=cur(id), p={...S.players[id],money:c.m,debt:c.d,last:RACING?0:S.players[id].last};
     const sub=S.phase==='play'&&S.game.submitted[id];
     return `<div class="row ${id===ME.pid?'me':''} ${p.online?'':'off'}">
@@ -1403,6 +1433,13 @@ function updateDynamic(){
       <span class="nm">${avImg(id)}${id===S.hostId?'🎙️ ':''}${esc(p.name)}${sub?' <span class="ok">✔</span>':''}${ME.isHost&&!S.single&&id!==S.hostId?` <button class="kick" data-kick="${id}" title="내보내기">✕</button>`:''}</span>
       ${HIDE?`<span class="mn hid">🔒</span><span class="dl"></span>`:`<span class="mn">${fmt(p.money)}${p.debt?`<small class="debt">빚 ${fmt(p.debt)}</small>`:''}</span>
       <span class="dl ${p.last>0?'up':'down'}">${p.last?signed(p.last):''}</span>`}</div>`; }).join('');
+  let wl=$('#wallet'); if(!wl){ $('#board').insertAdjacentHTML('beforebegin','<div id="wallet" class="wallet"></div>'); wl=$('#wallet'); }
+  const myP=S.players[ME.pid];
+  if(HIDE&&myP){ const c=cur(ME.pid), shown=walletShown();
+    wl.style.display=''; wl.innerHTML=`<div class="wl-t">👛 내 지갑 <span class="muted">(나만 보여요)</span><button class="btn sm" id="wlToggle">${shown?'🙈 가리기':'👁 보기'}</button></div>
+      <div class="wl-v">${shown?`<b>${fmt(c.m)}원</b>${c.d?` <span class="debt">빚 ${fmt(c.d)}원</span>`:''}<div class="muted" style="font-size:12px">순자산 ${fmt(c.m-c.d)}원${!RACING&&myP.last?` · 이번 판 <b class="${myP.last>0?'up':'down'}">${signed(myP.last)}</b>`:''}</div>`:'<span class="muted">🔒 가려짐 (방송 화면에서 숨기고 싶을 때)</span>'}</div>`;
+    $('#wlToggle').onclick=()=>{ try{ localStorage.setItem('msurv-wallet',shown?'0':'1'); }catch(e){} updateDynamic(); }; }
+  else wl.style.display='none';
   const bh=$('.board h3'); if(bh) bh.innerHTML=HIDE?'💸 순위 <span class="muted" style="font-size:12px;font-weight:500">🙈 금액 비공개</span>':'💸 순위';
   if(S.phase==='play'){
     const g=S.game, cnt=Object.keys(g.submitted).length, sc=$('#subcount');
@@ -1415,6 +1452,7 @@ function updateDynamic(){
     tick();
   }
 }
+function walletShown(){ try{ return localStorage.getItem('msurv-wallet')!=='0'; }catch(e){ return true; } }
 function tick(){
   if(S&&S.phase==='play'&&(S.game.type==='bomb'||S.game.type==='react')) return;
   if(S&&S.phase==='play'&&S.game.type==='chest'){ const el=$('#timer'); if(el){ const now=Date.now()-clockOffset; if(now<S.game.t0){ el.textContent='섞는 중'; el.classList.remove('urgent'); } else { const r=Math.max(0,Math.ceil((S.game.deadline-now)/1000)); el.textContent=r>0?r+'초':'개봉!'; el.classList.toggle('urgent',r<=3); } } return; }
@@ -1446,7 +1484,7 @@ function lobbyHTML(){
     ? `<div class="sec">⚙️ 설정</div>${S.single
         ?`<label>컴퓨터 상대 수 (1~9)</label><input type="number" data-set="bots" min="1" max="9" value="${botCount}">`
         :`<label>방 제목</label><input type="text" data-set="title" maxlength="30" value="${esc(S.title)}">`}
-       <label class="chk"><input type="checkbox" data-set="hideMoney" ${st.hideMoney?'checked':''}><span>🙈 <b>순위만 공개 모드</b> — 점수판에 순위만 보여주고 보유금·빚은 숨겨요 (최종 결과에서 공개)</span></label>
+       <label class="chk"><input type="checkbox" data-set="hideMoney" ${st.hideMoney?'checked':''}><span>🙈 <b>순위만 공개 모드</b> — 순위만 보여주고, 다른 참가자의 보유금·빚·베팅액·보상은 모두 숨겨요 (최종 결과에서 공개)</span></label>
        <div class="settings">${SETTINGS.map(([k,l])=>`<div><label>${l}</label><input type="number" data-set="${k}" value="${st[k]}" min="0"></div>`).join('')}</div>`
     : `<div class="sview">${st.hideMoney?'<span class="pill">🙈 <b>순위만 공개 모드</b></span>':''}${SETTINGS.map(([k,l])=>`<span class="pill">${l}: <b>${fmt(st[k])}</b></span>`).join('')}</div>`;
   return `<div class="hero">${stk('wave','heroimg')}<h2>대기실</h2></div>
@@ -1494,9 +1532,9 @@ function playHTML(){
   if(S.game.type==='mines') return minesPlayHTML();
   const g=S.game, G=GAMES[g.type], elig=g.eligible.includes(ME.pid), done=mySub.round===S.round;
   let extra='';
-  if(g.type==='unique') extra=`<br>참가비: <b>${fmt(g.params.fee)}원</b> <span class="muted">(보유금 중앙값 ${fmt(g.params.med||0)}원의 ${S.settings.stakePct||10}%)</span>`;
-  if(g.type==='auction'&&g.params.m){ const [lo,hi]=boxRange(g.params.m); extra=`<br>이번 상자: <b>${fmt(lo)}원 ~ ${fmt(hi)}원</b> <span class="muted">(보유금 중앙값 ${fmt(g.params.m)}원 기준)</span>`; }
-  if(g.type==='pd'){ const s=g.params.stake; extra=`<br>이번 판돈 <b>${fmt(s)}원</b> <span class="muted">(보유금 중앙값의 ${S.settings.stakePct||10}%)</span><br>둘 다 협력 <b class="up">+${fmt(s)}</b> · 둘 다 배신 <b class="down">-${fmt(s)}</b> · 혼자 배신 <b class="up">+${fmt(2*s)}</b> / 당한 쪽 <b class="down">-${fmt(2*s)}</b><br>제출하지 않으면 협력으로 처리돼요.`; }
+  if(g.type==='unique') extra=`<br>참가비: <b>${fmt(g.params.fee)}원</b> ${g.params.med?`<span class="muted">(보유금 중앙값 ${fmt(g.params.med)}원의 ${S.settings.stakePct||10}%)</span>`:'<span class="muted">(판 크기에 맞춰 자동 조정)</span>'}`;
+  if(g.type==='auction'&&g.params.m){ const [lo,hi]=boxRange(g.params.m); extra=`<br>이번 상자: <b>${fmt(lo)}원 ~ ${fmt(hi)}원</b> ${S.settings.hideMoney?'<span class="muted">(판 크기에 맞춰 자동 조정)</span>':`<span class="muted">(보유금 중앙값 ${fmt(g.params.m)}원 기준)</span>`}`; }
+  if(g.type==='pd'){ const s=g.params.stake; extra=`<br>이번 판돈 <b>${fmt(s)}원</b> ${S.settings.hideMoney?'<span class="muted">(판 크기에 맞춰 자동 조정)</span>':`<span class="muted">(보유금 중앙값의 ${S.settings.stakePct||10}%)</span>`}<br>둘 다 협력 <b class="up">+${fmt(s)}</b> · 둘 다 배신 <b class="down">-${fmt(s)}</b> · 혼자 배신 <b class="up">+${fmt(2*s)}</b> / 당한 쪽 <b class="down">-${fmt(2*s)}</b><br>제출하지 않으면 협력으로 처리돼요.`; }
   if(g.type==='duel') extra='<br>제출하지 않으면 무작위 손, 0원으로 처리돼요.';
   const opp=elig?myOpponent(g):null;
   let body;
@@ -1603,7 +1641,7 @@ function resultBodyOld(r){
     return head+`<div class="sec">모두의 선택 (초록 = 유일, 줄 = 겹침)</div><div class="nums">${chips}</div>`;
   }
   if(r.type==='auction'){
-    const w=d.bids.find(b=>b.id===d.winner)||d.bids[0], prof=d.winner?d.box-w.bid:0;
+    const w=d.bids.find(b=>b.id===d.winner)||d.bids[0], prof=d.winner?(w.bid==null?null:d.box-w.bid):0;
     const react=!d.winner?'shrug':d.box<0?'shock':prof>0?'sparkle':prof===0?'shrug':'cryPuddle';
     const head=d.winner
       ?`<div class="announce">${stk(react,'rx'+(prof>0?' bounce':''))}상자 안의 금액은…<big>${fmt(d.box)}원</big><b>${nameOf(d.winner)}</b> 님이 ${fmt(w.bid)}원에 낙찰${d.tie?` <span class="pill">🎰 ${d.tie.length}명 동점 추첨</span>`:''} → <b class="${prof>=0?'up':'down'}">${signed(prof)}</b></div>`
@@ -1746,7 +1784,7 @@ function runShow(r){
   }
   if(r.type==='auction'){
     const bids=[...document.querySelectorAll('.au-bid')], box=$('#aubox'), val=$('#auval');
-    const wb=d.bids.find(b=>b.id===d.winner), prof=d.winner?d.box-wb.bid:0;
+    const wb=d.bids.find(b=>b.id===d.winner), prof=d.winner?(wb.bid==null?null:d.box-wb.bid):0;
     const wRow=bids.find(b=>b.dataset.id===d.winner);
     const step=Math.min(450,3500/Math.max(1,bids.length));
     const lotto=$('#lotto'), cards=lotto?[...lotto.querySelectorAll('.lt-card')]:[];
@@ -1797,7 +1835,7 @@ function runShow(r){
     const pairs=[...document.querySelectorAll('.du-pair')];
     const reveal=()=>pairs.forEach(p=>{ p.classList.remove('chant'); p.querySelectorAll('.du-hand').forEach(h=>h.textContent=h.dataset.h); p.classList.add('shown'); });
     const hit=()=>pairs.forEach((p,i)=>{ const x=d.rows[i]; p.classList.add(x.da>0?'lwin':x.db>0?'rwin':'draw');
-      p.querySelectorAll('.du-s').forEach(sd=>{ const dv=+sd.dataset.dv, e=sd.querySelector('.du-d'); e.textContent=dv?signed(dv):'무승부'; e.className='du-d '+(dv>0?'up':dv<0?'down':''); }); });
+      p.querySelectorAll('.du-s').forEach(sd=>{ const dv=+sd.dataset.dv, e=sd.querySelector('.du-d'); e.textContent=(sd.dataset.dv==='null'||LOCKED(dv))?'🔒':dv?signed(dv):'무승부'; e.className='du-d '+(dv>0?'up':dv<0?'down':''); }); });
     sh.onEnd=()=>{ reveal(); hit(); };
     pairs.forEach(p=>p.classList.add('chant'));
     sh.at(200,()=>sh.cap('✌️ 가위!')); sh.at(800,()=>sh.cap('✊ 바위!')); sh.at(1400,()=>sh.cap('✋ 보!!','good'));
@@ -1924,9 +1962,9 @@ function runChestResult(){
 }
 function chestReveal(d){
   const me=d.rows.find(r=>r.id===ME.pid), cnt={}; d.rows.forEach(r=>cnt[r.grade]=(cnt[r.grade]||0)+1);
-  return `${me?`<div class="announce ch-me ${me.grade}">${stk(CH_REACT[me.grade],'rx'+(me.m>=3?' bounce':''))}내 상자는 <b>${me.k+1}번</b>${me.auto?' <span class="muted">(무작위 배정)</span>':''}<big>${CHEST_BY[me.grade].name} · ${me.m}배</big><b class="${me.d>0?'up':me.d<0?'down':''}">${me.d?signed(me.d):'±0'}</b></div>`:''}
+  return `${me?`<div class="announce ch-me ${me.grade}">${stk(CH_REACT[me.grade],'rx'+(me.m>=3?' bounce':''))}내 상자는 <b>${me.k+1}번</b>${me.auto?' <span class="muted">(무작위 배정)</span>':''}<big>${CHEST_BY[me.grade].name} · ${me.m}배</big><b class="${me.d>0?'up':me.d<0?'down':''}">${sgn0(me.d)}</b></div>`:''}
     <div class="deltas" style="justify-content:center">${CHEST.map(c=>`<span class="pill cl ${c.g}">${c.name} <b>${cnt[c.g]||0}명</b></span>`).join('')}</div>
-    ${d.rows.length?`<div class="sec">결과</div><div class="list">${d.rows.map(r=>`<div class="li ${r.grade==='legend'||r.grade==='rare'?'win':''}"><span>${stk(CH_REACT[r.grade],'lstk')}${nameOf(r.id)} · ${r.k+1}번${r.auto?'(무작위)':''} <span class="cl ${r.grade}">${CHEST_BY[r.grade].name} ${r.m}배</span> <span class="muted">${fmt(r.a)}원</span></span><b class="${r.d>0?'up':r.d<0?'down':''}">${r.d?signed(r.d):'±0'}</b></div>`).join('')}</div>`:'<p class="muted">아무도 상자를 고르지 않았어요.</p>'}`;
+    ${d.rows.length?`<div class="sec">결과</div><div class="list">${d.rows.map(r=>`<div class="li ${r.grade==='legend'||r.grade==='rare'?'win':''}"><span>${stk(CH_REACT[r.grade],'lstk')}${nameOf(r.id)} · ${r.k+1}번${r.auto?'(무작위)':''} <span class="cl ${r.grade}">${CHEST_BY[r.grade].name} ${r.m}배</span> <span class="muted">${fmt(r.a)}원</span></span><b class="${r.d>0?'up':r.d<0?'down':''}">${sgn0(r.d)}</b></div>`).join('')}</div>`:'<p class="muted">아무도 상자를 고르지 않았어요.</p>'}`;
 }
 
 /* ===== 반응속도 대결 화면 ===== */
@@ -2178,7 +2216,7 @@ function pkReveal(d){
   const big=d.rows.flatMap(x=>x.slots.map(k=>PK_MULT[k])).reduce((m,v)=>Math.max(m,v),0);
   return `<div class="announce">${big>=3?stk('sparkle','rx bounce'):stk('shrug')}${big>=10?'🎉 <b>10배 칸 등장!</b>':big>=3?'✨ 3배 칸에 들어간 씨앗이 있어요!':'모두 가운데로 모였어요…'}
       <div class="pk-tbl small">${PK_MULT.map((m,i)=>`<div class="pk-cell ${pkCls(m)}"><b>${m}x</b><i>${cnt[i]}개</i></div>`).join('')}</div></div>${party}
-    ${d.rows.length?`<div class="sec">베팅 내역</div><div class="list">${d.rows.map(x=>`<div class="li ${x.d>0?'win':''}"><span>${nameOf(x.id)} · ${x.c}개 × ${fmt(x.a)}원 → ${x.slots.map(k=>`<span class="pk-chip ${pkCls(PK_MULT[k])}">${PK_MULT[k]}x</span>`).join('')} <span class="muted">= ${fmt(x.pay)}원</span></span><b class="${x.d>0?'up':x.d<0?'down':''}">${x.d?signed(x.d):'±0'}</b></div>`).join('')}</div>`:'<p class="muted">아무도 떨어뜨리지 않았어요.</p>'}`;
+    ${d.rows.length?`<div class="sec">베팅 내역</div><div class="list">${d.rows.map(x=>`<div class="li ${x.d>0?'win':''}"><span>${nameOf(x.id)} · ${x.c}개 × ${fmt(x.a)}원 → ${x.slots.map(k=>`<span class="pk-chip ${pkCls(PK_MULT[k])}">${PK_MULT[k]}x</span>`).join('')} <span class="muted">= ${fmt(x.pay)}원</span></span><b class="${x.d>0?'up':x.d<0?'down':''}">${sgn0(x.d)}</b></div>`).join('')}</div>`:'<p class="muted">아무도 떨어뜨리지 않았어요.</p>'}`;
 }
 function runPlinko(){
   const d=S.result.detail, key=lastKey, rnd=mulberry32(d.seed), cv=$('#pkcv');
@@ -2452,7 +2490,7 @@ function diceStageHTML(d){
 function diceClack(v){ if(bMuted()) return; try{ B_AUDIO=B_AUDIO||new (window.AudioContext||window.webkitAudioContext)(); const a=B_AUDIO, t=a.currentTime, n=Math.floor(a.sampleRate*0.05), buf=a.createBuffer(1,n,a.sampleRate), dd=buf.getChannelData(0);
   for(let i=0;i<n;i++) dd[i]=(Math.random()*2-1)*Math.pow(1-i/n,4); const src=a.createBufferSource(), g=a.createGain(), f=a.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1800; src.buffer=buf; g.gain.value=0.6*v; src.connect(f).connect(g).connect(a.destination); src.start(t); }catch(e){} }
 function diceReveal(d){
-  const winners=d.rows.filter(x=>x.win), cnt={O:0,E:0}, amt={O:0,E:0}; d.rows.forEach(x=>{ cnt[x.c]++; amt[x.c]+=x.a; });
+  const winners=d.rows.filter(x=>x.win), cnt={O:0,E:0}, amt={O:0,E:0}; d.rows.forEach(x=>{ cnt[x.c]++; amt[x.c]=(amt[x.c]==null||x.a==null)?null:amt[x.c]+x.a; });
   const party=winners.length?`<div class="rl-party">${winners.slice(0,8).map(x=>`<div class="rl-w"><img class="rl-wav" src="${PLAYER_AV[avIdx(x.id)]}" alt=""><div>${nameOf(x.id)}</div><b class="up">${signed(x.d)}</b></div>`).join('')}</div>`
     :`${stk('cryPuddle')}<div class="muted" style="text-align:center">이번엔 맞힌 사람이 없어요!</div>`;
   return `<div class="announce dc-ann">${winners.length?stk('sparkle','rx bounce'):''}<div class="dc-mini">${dieHTML(d.d1,'sm')}<b>+</b>${dieHTML(d.d2,'sm')}<b>=</b><span class="dc-total">${d.sum}</span></div>결과는 ${oeTag(d.res)}!</div>
