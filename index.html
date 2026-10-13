@@ -51,6 +51,32 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 @media(max-width:860px){.grid{grid-template-columns:1fr}}
 .stage h2{margin:0 0 6px}
 .board h3{margin:0 0 10px}
+.side{display:flex;flex-direction:column;gap:16px;min-width:0}
+.chat{padding:14px 16px}
+.chat h3{margin:0 0 8px;display:flex;align-items:center;gap:6px;font-size:16px}.chat h3 .muted{font-size:12px;font-weight:500}.chat h3 .btn{margin-left:auto;padding:4px 10px;font-size:12px}
+.chat-log{height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding:4px 2px;font-size:14px;overscroll-behavior:contain}
+.cm{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,.04);word-break:break-all}
+.cm.mine{background:rgba(245,197,66,.12)}
+.cm-n{font-weight:800;color:var(--gold);font-size:13px}.cm.mine .cm-n{color:#ffe08a}
+.cm-t{flex:1 1 auto;color:var(--text)}
+.cm-time{font-size:10px;color:var(--muted);margin-left:auto}
+.cm-empty{padding:10px;text-align:center;font-size:13px}
+.chat-in{display:flex;gap:6px;margin-top:8px}
+.chat-in input{flex:1;min-width:0;background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:9px 12px;font-size:14px}
+.chat.fold .chat-log,.chat.fold .chat-in{display:none}.chat.fold h3{margin:0}
+@media(max-width:860px){.chat-log{height:180px}}
+/* 협력/배신 짝 발표 */
+.pd-intro{margin:0 0 12px;padding:12px;border-radius:12px;background:#1b2436}
+.pd-intro.on{background:linear-gradient(180deg,#2b1a3a,#1a1226);border:2px solid #7b4bb0;animation:capPop .4s ease-out}
+.pi-title{font-weight:900;margin-bottom:8px;color:#e6c8ff}
+.pi-me{display:flex;align-items:center;justify-content:center;gap:8px;font-size:18px;margin:4px 0 12px}
+.pi-me .sav{width:44px;height:44px}
+.pi-heart{font-size:22px;animation:cheer .8s ease-in-out infinite}
+.pi-list{display:flex;flex-wrap:wrap;gap:8px}
+.pi-pair{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,.05);font-size:13px}
+.pd-intro.on .pi-pair{opacity:0;animation:capPop .35s ease-out forwards;animation-delay:calc(var(--i) * .25s + .3s)}
+.pi-pair.me{outline:2px solid var(--gold);background:#3a3110}
+.pi-p{display:inline-flex;align-items:center;gap:4px}.pi-x{opacity:.7}
 /* board */
 .row{display:grid;grid-template-columns:28px 1fr auto auto;gap:8px;align-items:center;padding:8px 6px;border-bottom:1px solid #222838;font-size:15px}
 .row.me{background:rgba(245,197,66,.08);border-radius:8px}
@@ -242,6 +268,7 @@ label.chk input{width:18px;height:18px;margin-top:2px;accent-color:var(--gold)}
 .au-bid .stamp{position:absolute;right:-8px;top:-12px;background:#d62e3d;color:#fff;font-weight:900;padding:2px 10px;border-radius:6px;transform:rotate(12deg) scale(0);transition:transform .3s cubic-bezier(.3,1.8,.5,1)}
 .au-bid.win{background:#3a3110;outline:2px solid var(--gold)}
 .au-bid.win .stamp{transform:rotate(12deg) scale(1)}
+.au-bid.in.lost{opacity:.55;filter:grayscale(.8)}.au-bid.lost b{text-decoration:line-through;color:#ff8a95}
 .au-box{position:relative;text-align:center;padding:14px;background:var(--card2);border-radius:16px}
 .au-img{width:150px;height:130px;object-fit:contain;transition:transform .3s}
 .au-box.shake .au-img{animation:shake .35s ease-in-out infinite}
@@ -613,8 +640,8 @@ const AVATAR_FEVER=["data:image/webp;base64,UklGRpgtAABXRUJQVlA4WAoAAAAQAAAA9gAA
 // ===== LOGIC START =====
 const GAMES = {
   unique:  { name:'최소 유일 숫자', icon:'🔢', stk:'think', desc:'참가비를 내고 1~50 중 숫자 하나를 고르세요. 다른 사람과 겹치지 않는 숫자 중 가장 작은 숫자를 고른 사람이 판돈을 모두 가져갑니다. 겹치지 않은 숫자가 하나도 없으면 가장 작은 숫자를 고른 사람들끼리 랜덤 추첨!' },
-  auction: { name:'눈치 경매', icon:'📦', stk:'box', desc:'상자 안에는 판돈 기준 금액(참가자 보유금 중앙값)의 -100% ~ 500% 사이 금액이 들어 있어요. 가장 높은 금액을 쓴 사람이 그 금액을 내고 상자를 가져갑니다. (최고가가 동점이면 동점자 중 랜덤 추첨!)' },
-  pd:      { name:'협력 / 배신', icon:'🤝', stk:'heart', desc:'랜덤으로 짝을 지어요. 둘 다 협력하면 둘 다 이득, 둘 다 배신하면 둘 다 손해, 한 명만 배신하면 배신자가 크게 벌고 협력한 쪽이 크게 잃어요.' },
+  auction: { name:'눈치 경매', icon:'📦', stk:'box', desc:'상자 안에는 판돈 기준 금액(참가자 보유금 중앙값)의 -100% ~ 500% 사이 금액이 들어 있어요. 가장 높은 금액을 쓴 사람이 상자를 가져가요. 단, 입찰한 금액은 1등이 아니어도 모두 내야 하고 돌려받지 못해요! (최고가가 동점이면 동점자 중 랜덤 추첨)' },
+  pd:      { name:'협력 / 배신', icon:'🤝', stk:'heart', desc:'랜덤으로 짝을 지어요. 짝이 먼저 발표되고, 상대를 확인한 뒤 협력/배신을 골라요. 둘 다 협력하면 둘 다 이득, 둘 다 배신하면 둘 다 손해, 한 명만 배신하면 배신자가 크게 벌고 협력한 쪽이 크게 잃어요.' },
   race:    { name:'경마 베팅', icon:'🏇', stk:'flyCape', desc:'말 한 마리에 원하는 만큼 거세요. 1등이면 우승 배당, 2~3등 안에 들면 입상 배당만큼 돌려받아요. (5~8마리면 2등까지, 4마리 이하면 1등만)' },
   duel:    { name:'1:1 대결', icon:'⚔️', stk:'boxRed', desc:'랜덤으로 짝을 지어 가위바위보! 각자 금액을 쓰면 둘 중 더 적은 금액이 판돈이 되고, 이긴 사람이 진 사람에게서 판돈만큼 가져갑니다. (내가 건 금액 이상은 잃지 않아요)' }
   ,roulette:{ name:'룰렛', icon:'🎡', stk:'excited', desc:'유럽식 룰렛(0~36). 색·홀짝·낮음/높음·구간·숫자에 걸어 결과를 맞혀요. 항목마다 하나씩, 여러 항목에 동시에 걸 수 있어요. 0이 나오면 숫자 0 외에는 모두 실패!' }
@@ -780,11 +807,12 @@ function resolve(type,params,subs){
     const box=rollBox(params.m);
     const bids=shuffle(Object.entries(subs).map(([id,s])=>({id,bid:s.bid}))).sort((a,b)=>b.bid-a.bid);
     let winner=null, tie=null;
+    bids.forEach(b=>add(b.id,-b.bid));   // 입찰금은 모두 냄 (1등이 못 되면 돌려받지 못함)
     if(bids.length&&bids[0].bid>0){
       const top=bids[0].bid, tied=bids.filter(b=>b.bid===top).map(b=>b.id);
       winner=tied[Math.floor(Math.random()*tied.length)];   // 최고가 동점이면 동점자 중 랜덤 추첨
       if(tied.length>1) tie=tied;
-      add(winner,box-top);
+      add(winner,box);
     }
     return { deltas, detail:{ box, winner, bids, tie, seed:Math.floor(Math.random()*2147483647) } };
   }
@@ -879,6 +907,7 @@ const LOTTO_DRAW=2;     // 숫자 추첨에서 나오는 공 개수
 // 보물상자 25개 구성 (개수 고정, 위치만 섞음) — 회수율 (0×9+0.7×8+1.4×5+3×2+5×1)/25 = 94.4%
 const CHEST=[ {g:'miss',name:'꽝',n:9,m:0}, {g:'common',name:'일반',n:8,m:0.7}, {g:'fine',name:'고급',n:5,m:1.4}, {g:'rare',name:'희귀',n:2,m:3}, {g:'legend',name:'전설',n:1,m:5} ];
 const CHEST_BY=Object.fromEntries(CHEST.map(c=>[c.g,c]));
+const PD_INTRO=5000;   // 협력/배신: 짝 발표 시간(ms)
 const RACE_RTP=0.95, RACE_WIN_SHARE=0.6; // 경마: 회수율 95% 중 60%는 1등 배당, 40%는 2·3등 배당으로 나눔 → 1등 배당이 전보다 약 40% 낮아짐
 const PK_ROWS=8, PK_MULT=[10,3,1.3,0.7,0.35,0.7,1.3,3,10],  // 플링코 회수율 약 95.2%
   PK_MAXBALL=10;
@@ -955,7 +984,7 @@ function botAmount(money,lo,hi,step){ const base=Math.max(money,3000); return Ma
 function botMove(type,money,params){
   switch(type){
     case 'unique': return { n:1+Math.floor(Math.pow(Math.random(),2)*15) };
-    case 'auction': { const m=(params&&params.m)||10000; return { bid: Math.random()<0.2?0:niceAmt(m*(0.2+Math.random()*2.8)) }; }
+    case 'auction': { const m=(params&&params.m)||10000; return { bid: Math.random()<0.25?0:niceAmt(m*(0.1+Math.random()*1.4)) }; }
     case 'pd': return { c: Math.random()<0.55?'C':'B' };
     case 'race': { const R=params.runners; return { h: Math.random()<0.25?Math.floor(Math.random()*R.length):pickRunner(R), a: botAmount(money,0.1,0.4,100) }; }
     case 'roulette': {
@@ -1055,9 +1084,10 @@ function onHostData(conn,d){
     HOST.conns.set(conn,pid);
     if(st.players[pid]) st.players[pid].online=true;
     else st.players[pid]={ name:uniqueName(cleanName(d.name),pid), money:st.settings.startMoney, online:true, last:0, av:pickAv() };
-    try{ conn.send({t:'welcome',pid}); }catch(e){}
+    try{ conn.send({t:'welcome',pid}); conn.send({t:'chatlog',list:HOST.chat||[]}); }catch(e){}
     changed(); return;
   }
+  if(d.t==='chat'){ const pid=HOST.conns.get(conn); if(pid) hChat(pid,d.text); return; }
   if(d.t==='act'){
     const pid=HOST.conns.get(conn);
     if(pid&&d.round===st.round) hSubmit(pid,d.data);
@@ -1097,13 +1127,13 @@ function hStartRound(type){
   if(type==='unique') params.fee=base;
   if(type==='mines'||type==='bomb'||type==='react') params.fee=base;
   if(type==='auction') params.m=niceAmt(med);
-  if(type==='pd'){ params.stake=base; params.pairs=makePairs(online); }
+  if(type==='pd'){ params.stake=base; params.pairs=makePairs(online); params.t0=Date.now()+PD_INTRO; }   // 짝 발표 시간 동안은 선택 불가
   if(type==='duel') params.pairs=makePairs(online);
   if(type==='race') params.runners=makeRunners(st.settings.horses||10);
   st.round+=1;
   if(type==='shell'){ params.seed=Math.floor(Math.random()*2147483647); params.start0=Math.floor(Math.random()*3);
     params.show=2000; params.shuf=5000+Math.floor(Math.random()*3000); params.pick=(st.settings.shellTime||8)*1000; params.t0=Date.now()+600; }
-  const secs=type==='roulette'?(st.settings.rlTime||60):type==='dice'?(st.settings.diceTime||20):type==='shell'?(params.show+params.shuf+params.pick+600)/1000:type==='lotto'?(st.settings.lottoTime||30):type==='plinko'?(st.settings.plinkoTime||20):type==='chest'?2+(st.settings.chestTime||20):st.settings.timer;
+  const secs=type==='roulette'?(st.settings.rlTime||60):type==='dice'?(st.settings.diceTime||20):type==='shell'?(params.show+params.shuf+params.pick+600)/1000:type==='lotto'?(st.settings.lottoTime||30):type==='plinko'?(st.settings.plinkoTime||20):type==='chest'?2+(st.settings.chestTime||20):type==='pd'?PD_INTRO/1000+st.settings.timer:st.settings.timer;
   st.game={ type, params, eligible:online, submitted:{}, deadline:Date.now()+secs*1000 };
   if(type==='roulette'||type==='dice'||type==='lotto') st.game.stats={};
   if(type==='chest'){ st.game.picks={}; st.game.t0=Date.now()+2000; }
@@ -1132,7 +1162,7 @@ function scheduleBots(){
     setTimeout(()=>{
       if(HOST.state.round!==round||HOST.state.phase!=='play'||!st.players[id]) return;
       hSubmit(id,clampMove(g.type,botMove(g.type,st.players[id].money,g.params),st.players[id].money,g.params));
-    },g.type==='chest'?(g.t0-Date.now())+800+Math.random()*Math.min(9000,(g.deadline-g.t0)*0.6):g.type==='shell'?(g.params.t0+g.params.show+g.params.shuf-Date.now())+400+Math.random()*g.params.pick*0.6:1500+Math.random()*Math.max(0,maxWait-1500));
+    },g.type==='chest'?(g.t0-Date.now())+800+Math.random()*Math.min(9000,(g.deadline-g.t0)*0.6):g.type==='shell'?(g.params.t0+g.params.show+g.params.shuf-Date.now())+400+Math.random()*g.params.pick*0.6:(g.type==='pd'?g.params.t0-Date.now():0)+1500+Math.random()*Math.max(0,maxWait-1500));
   });
 }
 function createSingle(name,botCount){
@@ -1264,6 +1294,7 @@ function hSubmit(pid,data){
   const g=st.game; if(!g.eligible.includes(pid)||(g.submitted[pid]&&g.type!=='chest')) return;   // 보물상자는 마감 전까지 변경 가능
   const clean=validate(g.type,data,g.params); if(!clean) return;
   if(g.type==='chest'&&Date.now()<g.t0-200) return;   // 상자 섞는 중
+  if(g.type==='pd'&&Date.now()<g.params.t0-200) return;   // 짝 발표 중
   if(g.type==='shell'&&Date.now()<g.params.t0+g.params.show+g.params.shuf-300) return; // 섞기가 끝나기 전엔 선택 불가
   if(betCheck(g.type,clean,st.players[pid].money,g.params)) return; // 최소 금액 · 보유금 · 베팅 한도 확인
   HOST.subs[pid]={...clean,ts:Date.now()}; g.submitted[pid]=true;
@@ -1364,6 +1395,8 @@ function joinRoom(code,name){
 function onClientData(d){
   if(d.t==='state'){ clockOffset=Date.now()-d.now; S=d.s; if(S.phase==='lobby') mySub={round:-1,data:null}; render(); }
   else if(d.t==='welcome'){ ME.pid=d.pid; }
+  else if(d.t==='chatlog'){ CHAT=Array.isArray(d.list)?d.list.slice(-CHAT_MAX):[]; renderChat(true); }
+  else if(d.t==='chat'){ if(d.m) addChat(d.m); }
   else if(d.t==='kicked'){ kicked=true; S=null; showCenter('방장이 이 방에서 내보냈어요.'); }
   else if(d.t==='closed'){ kicked=true; S=null; try{ CL&&CL.peer&&CL.peer.destroy(); }catch(e){} showCenter(`${stk('wave','rx')}방장이 방을 닫았어요.<br><span class="muted">방장이 같은 방을 다시 열면 이 링크로 다시 들어올 수 있어요.</span><br><br><button class="btn" onclick="location.reload()">다시 접속해 보기</button> <button class="btn" onclick="location.href=baseUrl()">처음 화면으로</button>`); }
 }
@@ -1418,7 +1451,7 @@ function shell(){
       : `<div class="room"><div><div class="code-label">방 코드</div><div class="code" id="hCode"></div></div><div class="rbtns">${ME.isHost?'<button class="btn sm" id="copyLink">참여 링크 복사</button><button class="btn sm" id="homeBtn">처음으로</button>':''}</div></div>`}
   </header>
   <div id="banner" class="banner hidden"></div>
-  <main class="grid"><section class="card stage" id="stage"></section><aside class="card board"><h3>💸 순위</h3><div id="board"></div></aside></main>`;
+  <main class="grid"><section class="card stage" id="stage"></section><aside class="side"><div class="card board"><h3>💸 순위</h3><div id="board"></div></div>${chatShellHTML()}</aside></main>`;
 }
 let BG_CUR=null;
 // 새 방 배경: 직전 방들과 겹치지 않게 무작위 선택
@@ -1426,6 +1459,62 @@ function pickRoomBg(){ let recent=[]; try{ recent=JSON.parse(localStorage.getIte
   const pool=BG_IMGS.map((_,i)=>i).filter(i=>!recent.includes(i)); const i=pool[Math.floor(Math.random()*pool.length)];
   try{ localStorage.setItem('msurv-bgs',JSON.stringify([i,...recent].slice(0,5))); }catch(e){} return i; }
 function setBg(i){ if(i===BG_CUR||i==null) return; BG_CUR=i; document.body.style.setProperty('--roombg',`url(${BG_IMGS[i%BG_IMGS.length]})`); document.body.classList.add('hasbg'); }
+/* ===== 실시간 채팅 ===== 방장이 모든 메시지를 받아서 전체에 전달 (최근 80개 보관) */
+const CHAT_MAX=80, CHAT_LEN=100;
+let CHAT=[], chatUnread=0;
+function hChat(pid,text){
+  const st=HOST.state, p=st.players[pid]; if(!p) return;
+  text=String(text==null?'':text).replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,CHAT_LEN); if(!text) return;
+  HOST.chatAt=HOST.chatAt||{}; const now=Date.now(); if(now-(HOST.chatAt[pid]||0)<700) return;   // 도배 방지: 0.7초에 1개
+  HOST.chatAt[pid]=now;
+  const m={ id:pid, name:p.name, text, ts:now, host:pid===st.hostId, bot:!!p.bot };
+  HOST.chat=HOST.chat||[]; HOST.chat.push(m); if(HOST.chat.length>CHAT_MAX) HOST.chat.shift();
+  for(const c of HOST.conns.keys()) if(c.open) try{ c.send({t:'chat',m}); }catch(e){}
+  addChat(m);
+}
+function sendChat(){
+  const inp=$('#chatIn'); if(!inp) return; const text=inp.value.trim().slice(0,CHAT_LEN); if(!text) return;
+  const now=Date.now(); if(now-(window.__chatLast||0)<750) return toast('채팅은 조금 천천히 보내주세요'); window.__chatLast=now;
+  if(ME.isHost&&HOST) hChat(ME.pid,text);
+  else if(CL&&CL.conn&&CL.conn.open) CL.conn.send({t:'chat',text});
+  else return toast('연결이 끊겨 채팅을 보내지 못했어요');
+  inp.value=''; inp.focus();
+}
+function addChat(m){ CHAT.push(m); if(CHAT.length>CHAT_MAX) CHAT.shift(); renderChat(false,m); }
+function chatLine(m){
+  const t=new Date(m.ts), hh=String(t.getHours()).padStart(2,'0'), mm=String(t.getMinutes()).padStart(2,'0');
+  return `<div class="cm ${m.id===ME.pid?'mine':''}"><span class="cm-n">${m.host?'🎙️':m.bot?'🤖':''}${esc(m.name)}</span><span class="cm-t">${esc(m.text)}</span><span class="cm-time">${hh}:${mm}</span></div>`;
+}
+function chatShellHTML(){
+  return `<div class="card chat" id="chatBox"><h3>💬 채팅 <span class="muted" id="chatCnt"></span><button class="btn sm ghost" id="chatFold">접기</button></h3>
+    <div class="chat-log" id="chatLog"></div>
+    <div class="chat-in"><input id="chatIn" maxlength="${CHAT_LEN}" placeholder="메시지 입력 (Enter로 전송)" autocomplete="off"><button class="btn sm gold" id="chatSend">전송</button></div></div>`;
+}
+function chatFolded(){ try{ return localStorage.getItem('msurv-chatfold')==='1'; }catch(e){ return false; } }
+function bindChat(){
+  const inp=$('#chatIn'); if(!inp) return;
+  inp.onkeydown=e=>{ if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229){ e.preventDefault(); sendChat(); } };
+  $('#chatSend').onclick=sendChat;
+  const box=$('#chatBox'); box.classList.toggle('fold',chatFolded());
+  $('#chatFold').onclick=()=>{ const f=!box.classList.contains('fold'); box.classList.toggle('fold',f); try{ localStorage.setItem('msurv-chatfold',f?'1':'0'); }catch(e){} chatUnread=0; renderChat(true); };
+}
+function renderChat(full,m){
+  const log=$('#chatLog'); if(!log) return;
+  const box=$('#chatBox'), folded=box&&box.classList.contains('fold');
+  if(full) log.innerHTML=CHAT.length?CHAT.map(chatLine).join(''):'<div class="muted cm-empty">아직 메시지가 없어요. 첫 인사를 남겨보세요! 👋</div>';
+  else if(m){ const e=log.querySelector('.cm-empty'); if(e) e.remove(); const near=log.scrollHeight-log.scrollTop-log.clientHeight<60; log.insertAdjacentHTML('beforeend',chatLine(m)); while(log.children.length>CHAT_MAX) log.firstChild.remove(); if(folded&&m.id!==ME.pid) chatUnread++; if(!near&&!full&&m.id!==ME.pid){ /* 위로 스크롤해 읽는 중이면 그대로 둠 */ } else log.scrollTop=log.scrollHeight; }
+  if(full) log.scrollTop=log.scrollHeight;
+  const cnt=$('#chatCnt'); if(cnt) cnt.textContent=folded&&chatUnread?`· 새 메시지 ${chatUnread}개`:'';
+  const fb=$('#chatFold'); if(fb) fb.textContent=folded?'펼치기':'접기';
+}
+// 싱글 모드: 결과가 나오면 컴퓨터가 가끔 한마디
+const BOT_LINES={ win:['ㅋㅋㅋ 개꿀','오예~ 🎉','이게 되네?','역시 나야','감사합니다 ㅎㅎ'], lose:['아 망했다 ㅠㅠ','다음 판에 복구한다','이건 말이 안 돼','ㅠㅠㅠ','눈물 좀 닦고 올게요'], none:['흠…','다음 판 뭐하지','긴장된다','다들 잘하네']};
+function botBanter(){
+  const st=HOST.state; if(!st.result) return; const r=st.round;
+  Object.entries(st.players).filter(([,p])=>p.bot).forEach(([id])=>{ if(Math.random()>0.22) return;
+    const d=st.result.deltas[id]||0, pool=BOT_LINES[d>0?'win':d<0?'lose':'none'];
+    setTimeout(()=>{ if(HOST&&HOST.state.round===r) hChat(id,pool[Math.floor(Math.random()*pool.length)]); },1500+Math.random()*5000); });
+}
 function render(){
   if(!S) return;
   if(S.bg==null&&ME.isHost&&HOST){ HOST.state.bg=pickRoomBg(); S.bg=HOST.state.bg; }   // 예전 방 복구 시
@@ -1442,6 +1531,7 @@ function render(){
       setTimeout(()=>{ try{ if(HOST&&HOST.peer) HOST.peer.destroy(); }catch(e){} location.href=baseUrl(); },S.single?0:400); };
     if($('#copyLink')) $('#copyLink').onclick=()=>{ const url=baseUrl()+'?room='+S.code; (navigator.clipboard?navigator.clipboard.writeText(url):Promise.reject()).then(()=>toast('참여 링크를 복사했어요'),()=>prompt('이 링크를 복사하세요',url)); };
     $('#board').onclick=e=>{ const k=e.target.closest('[data-kick]'); if(k&&ME.isHost) hKick(k.dataset.kick); };
+    bindChat(); renderChat(true);
   }
   const key=stageKey();
   if(key!==lastKey){ lastKey=key; SEL={}; RACING=false; $('#stage').innerHTML=stageHTML().replace(/🔒원/g,'🔒'); bindStage(); afterStage(); }
@@ -1450,7 +1540,7 @@ function render(){
 function stageKey(){
   let k=[S.phase,S.round,mySub.round===S.round?1:0,ME.isHost?1:0].join('|');
   if(S.phase==='lobby'&&!ME.isHost) k+=JSON.stringify(S.settings);
-  if(S.phase==='play') k+='|'+S.game.eligible.includes(ME.pid);
+  if(S.phase==='play') k+='|'+S.game.eligible.includes(ME.pid)+'|'+(pdIntro(S.game)?'intro':'');
   if(S.phase==='final') k+='|'+JSON.stringify(Object.values(S.players).map(p=>[p.name,p.money]));
   return k;
 }
@@ -1502,10 +1592,12 @@ function tick(){
   if(S&&S.phase==='play'&&(S.game.type==='bomb'||S.game.type==='react')) return;
   if(S&&S.phase==='play'&&S.game.type==='chest'){ const el=$('#timer'); if(el){ const now=Date.now()-clockOffset; if(now<S.game.t0){ el.textContent='섞는 중'; el.classList.remove('urgent'); } else { const r=Math.max(0,Math.ceil((S.game.deadline-now)/1000)); el.textContent=r>0?r+'초':'개봉!'; el.classList.toggle('urgent',r<=3); } } return; }
   if(S&&S.phase==='play'&&S.game.type==='mines') return mTick();
+  if(S&&S.phase==='play'&&pdIntro(S.game)){ const el=$('#timer'); if(el){ el.textContent='짝 발표'; el.classList.remove('urgent'); } return; }
   if(!S||S.phase!=='play'||S.game.type==='shell') return; const el=$('#timer'); if(!el) return;
   const rem=Math.max(0,Math.ceil((S.game.deadline-(Date.now()-clockOffset))/1000));
   el.textContent=rem>0?rem+'초':'마감!'; el.classList.toggle('urgent',rem<=5);
 }
+{ const __hClose=hClose; hClose=function(){ const was=HOST&&HOST.state.phase==='play'; __hClose(); if(was&&HOST.single&&HOST.state.phase!=='play') botBanter(); }; }
 setInterval(()=>{ tick(); if(HOST&&HOST.state.phase==='play'&&Date.now()>=HOST.state.game.deadline) hClose();
   // 지뢰찾기: 시간 안에 못 고르면 무작위 칸 자동 선택
   if(HOST&&HOST.state.phase==='play'){ const g=HOST.state.game; if(g.type==='mines'&&g.cur&&Date.now()>g.turnDeadline+300) mPick(g.cur,mRandomCell(g),true); }
@@ -1545,6 +1637,15 @@ function pickerHTML(label){
     ${Object.entries(GAMES).map(([k,g])=>`<button class="btn pbtn" data-game="${k}">${gimg(g,'pimg')}${g.name}</button>`).join('')}
     <button class="btn gold" data-game="random">🎲 랜덤</button></div></div>`;
 }
+const pdIntro=g=>g&&g.type==='pd'&&g.params.t0&&Date.now()-clockOffset<g.params.t0;
+function pdPairsHTML(g){
+  const intro=pdIntro(g), mine=g.params.pairs.find(p=>p.includes(ME.pid));
+  const opp=mine?(mine[0]===ME.pid?mine[1]:mine[0]):null;
+  const list=g.params.pairs.map((p,i)=>`<div class="pi-pair ${p.includes(ME.pid)?'me':''}" style="--i:${i}"><span class="pi-p">${avTag(p[0])}${plainName(p[0])}</span><span class="pi-x">🤝</span><span class="pi-p">${avTag(p[1])}${plainName(p[1])}</span></div>`).join('');
+  return `<div class="pd-intro ${intro?'on':''}"><div class="pi-title">${intro?'🎲 이번 라운드 짝 발표!':'📋 이번 라운드 짝'}</div>
+    ${intro&&opp?`<div class="pi-me">${avTag(ME.pid)}<b>나</b><span class="pi-heart">💞</span>${avTag(opp)}<b>${plainName(opp)}</b></div>`:''}
+    <div class="pi-list">${list}</div></div>`;
+}
 function vsHTML(g,opp){
   if(g.type==='duel') return `<div class="vs duelvs"><div class="vside">${stk('boxRed','vimg')}<b>${nameOf(ME.pid)}</b></div><div class="vsx">VS</div><div class="vside r"><b>${nameOf(opp)}</b>${stk('boxPurple','vimg flip')}</div></div>`;
   return `<div class="vs">🤝 이번 짝: <b>${nameOf(opp)}</b> <span class="muted">— 상대는 무엇을 고를까요?</span></div>`;
@@ -1578,7 +1679,7 @@ function playHTML(){
   const g=S.game, G=GAMES[g.type], elig=g.eligible.includes(ME.pid), done=mySub.round===S.round;
   let extra='';
   if(g.type==='unique') extra=`<br>참가비: <b>${fmt(g.params.fee)}원</b> ${g.params.med?`<span class="muted">(보유금 중앙값 ${fmt(g.params.med)}원의 ${S.settings.stakePct||10}%)</span>`:'<span class="muted">(판 크기에 맞춰 자동 조정)</span>'}`;
-  if(g.type==='auction'&&g.params.m){ const [lo,hi]=boxRange(g.params.m); extra=`<br>이번 상자: <b>${fmt(lo)}원 ~ ${fmt(hi)}원</b> ${S.settings.hideMoney?'<span class="muted">(판 크기에 맞춰 자동 조정)</span>':`<span class="muted">(보유금 중앙값 ${fmt(g.params.m)}원 기준)</span>`}`; }
+  if(g.type==='auction'&&g.params.m){ const [lo,hi]=boxRange(g.params.m); extra=`<br>이번 상자: <b>${fmt(lo)}원 ~ ${fmt(hi)}원</b> ${S.settings.hideMoney?'<span class="muted">(판 크기에 맞춰 자동 조정)</span>':`<span class="muted">(보유금 중앙값 ${fmt(g.params.m)}원 기준)</span>`}<br><b class="down">⚠️ 1등이 못 되면 입찰금은 돌려받지 못해요!</b>`; }
   if(g.type==='pd'){ const s=g.params.stake; extra=`<br>이번 판돈 <b>${fmt(s)}원</b> ${S.settings.hideMoney?'<span class="muted">(판 크기에 맞춰 자동 조정)</span>':`<span class="muted">(보유금 중앙값의 ${S.settings.stakePct||10}%)</span>`}<br>둘 다 협력 <b class="up">+${fmt(s)}</b> · 둘 다 배신 <b class="down">-${fmt(s)}</b> · 혼자 배신 <b class="up">+${fmt(2*s)}</b> / 당한 쪽 <b class="down">-${fmt(2*s)}</b><br>제출하지 않으면 협력으로 처리돼요.`; }
   if(g.type==='duel') extra='<br>판돈은 두 사람 중 <b>적게 건 금액</b>이에요. 제출하지 않으면 무작위 손, 0원으로 처리돼요.';
   if(CAPPED.includes(g.type)&&g.params.cap) extra+=`<br>이번 판 베팅 한도: <b>${fmt(g.params.cap)}원</b> <span class="muted">(판 크기의 ${BET_CAP_X}배 · 최소 ${fmt(MIN_BET)}원부터)</span>`;
@@ -1586,9 +1687,11 @@ function playHTML(){
   let body;
   if(!elig) body=`<div class="wait">이번 라운드가 시작된 뒤에 들어오셔서 관전 중이에요. 다음 라운드부터 참여할 수 있어요.</div>`;
   else if(done) body=`<div class="done">${stk('book','rx sm')}✅ 제출 완료 — ${describeSub(g.type,mySub.data)}<br><span class="muted">마감되면 결과가 공개돼요.</span></div>`;
+  else if(pdIntro(g)) body=`<div class="wait">⏳ 짝이 정해졌어요! 잠시 후 협력/배신을 고를 수 있어요.</div>`;
   else body=inputHTML(g);
   return `<div class="ghead"><div class="gicon">${gimg(G)}</div><div><div class="gname">라운드 ${S.round} · ${G.name}</div><div class="gdesc">${G.desc}${extra}</div></div></div>
     <div class="timerbar"><div class="timer" id="timer">--</div><div class="muted" id="subcount"></div></div>
+    ${g.type==='pd'?pdPairsHTML(g):''}
     ${opp?vsHTML(g,opp):''}
     ${g.type==='shell'?shellStageHTML(g,done):''}
     ${body}
@@ -1692,11 +1795,11 @@ function resultBodyOld(r){
   }
   if(r.type==='auction'){
     const w=d.bids.find(b=>b.id===d.winner)||d.bids[0], prof=d.winner?(w.bid==null?null:d.box-w.bid):0;
-    const react=!d.winner?'shrug':d.box<0?'shock':prof>0?'sparkle':prof===0?'shrug':'cryPuddle';
+    const react=!d.winner||prof==null?'shrug':d.box<0?'shock':prof>0?'sparkle':prof===0?'shrug':'cryPuddle';
     const head=d.winner
       ?`<div class="announce">${stk(react,'rx'+(prof>0?' bounce':''))}상자 안의 금액은…<big>${fmt(d.box)}원</big><b>${nameOf(d.winner)}</b> 님이 ${fmt(w.bid)}원에 낙찰${d.tie?` <span class="pill">🎰 ${d.tie.length}명 동점 추첨</span>`:''} → <b class="${prof>=0?'up':'down'}">${signed(prof)}</b></div>`
       :`<div class="announce">${stk(react)}입찰자가 없었어요. 상자 안에는<big>${fmt(d.box)}원</big></div>`;
-    return head+(d.bids.length?`<div class="sec">입찰 내역</div><div class="list">${d.bids.map(b=>`<div class="li ${b.id===d.winner?'win':''}"><span>${nameOf(b.id)}${d.tie&&d.tie.includes(b.id)?' <span class="muted">(동점)</span>':''}</span><b>${fmt(b.bid)}원</b></div>`).join('')}</div>`:'');
+    return head+(d.bids.length?`<div class="sec">입찰 내역 <span class="muted">(낙찰 못 한 입찰금은 몰수)</span></div><div class="list">${d.bids.map(b=>`<div class="li ${b.id===d.winner?'win':''}"><span>${nameOf(b.id)}${d.tie&&d.tie.includes(b.id)?' <span class="muted">(동점)</span>':''}</span>${b.id===d.winner?`<b>${fmt(b.bid)}원 낙찰</b>`:b.bid==null?'<b>🔒</b>':b.bid>0?`<b class="down">-${fmt(b.bid)}원 몰수</b>`:'<b class="muted">0원</b>'}</div>`).join('')}</div>`:'');
   }
   if(r.type==='pd'){
     const face=(me,ot)=>me==='C'&&ot==='C'?'hugHeart':me==='B'&&ot==='C'?'laugh':me==='C'?'cryPuddle':'angry';
@@ -1755,6 +1858,7 @@ function afterStage(){
   if(S.phase==='result'&&S.result.type==='react') runReactResult();
   if(S.phase==='result'&&S.result.type==='chest') runChestResult();
   if(S.phase==='play'&&S.game.type==='shell') runShellPlay();
+  if(S.phase==='play'&&pdIntro(S.game)){ const r=S.round; setTimeout(()=>{ if(S&&S.phase==='play'&&S.round===r) render(); },Math.max(50,S.game.params.t0-(Date.now()-clockOffset)+40)); }
   if(S.phase==='play'&&S.game.type==='plinko'&&$('#pktotal')){ SEL.pc='1'; pkTotal(); const a=$('#amt'); if(a) a.oninput=pkTotal; }
   if(S.phase==='play'&&S.game.type==='lotto'&&$('#lttotal')){ SEL.ln=[]; lottoTotal(); const a=$('#amt'); if(a) a.oninput=lottoTotal; }
   if(S.phase==='play'&&S.game.type==='roulette'&&$('#rlslip')){ SEL.rl={}; rlRenderSlip(); }
@@ -1854,7 +1958,7 @@ function runShow(r){
     const wRow=bids.find(b=>b.dataset.id===d.winner);
     const step=Math.min(450,3500/Math.max(1,bids.length));
     const lotto=$('#lotto'), cards=lotto?[...lotto.querySelectorAll('.lt-card')]:[];
-    sh.onEnd=()=>{ bids.forEach(b=>{ b.classList.add('in'); if(d.tie&&d.tie.includes(b.dataset.id)) b.classList.add('tie'); }); if(wRow) wRow.classList.add('win');
+    sh.onEnd=()=>{ bids.forEach(b=>{ b.classList.add('in'); if(d.tie&&d.tie.includes(b.dataset.id)) b.classList.add('tie'); if(b.dataset.id!==d.winner&&d.bids.find(x=>x.id===b.dataset.id&&x.bid!==0)) b.classList.add('lost'); }); if(wRow) wRow.classList.add('win');
       if(lotto){ lotto.classList.add('show','done'); cards.forEach(c=>c.classList.toggle('on',c.dataset.id===d.winner)); }
       box.classList.remove('shake'); box.classList.add('open',d.box<0?'neg':'pos'); val.textContent=fmt(d.box)+'원'; };
     bids.forEach((b,i)=>sh.at(300+i*step,()=>b.classList.add('in')));
@@ -1877,6 +1981,8 @@ function runShow(r){
         sh.cap(`🎉 당첨! <b>${plainName(d.winner)}</b> 님이 ${fmt(wb.bid)}원에 낙찰!`,'good'); if(wRow) wRow.classList.add('win'); });
       t+=1700;
     } else if(d.winner){ sh.at(t,()=>{ if(wRow) wRow.classList.add('win'); sh.cap(`🔨 <b>${plainName(d.winner)}</b> 님이 ${fmt(wb.bid)}원에 낙찰!`,'good'); }); t+=1300; }
+    const losers=bids.filter(b=>b.dataset.id!==d.winner&&d.bids.find(x=>x.id===b.dataset.id&&x.bid!==0));
+    if(losers.length){ sh.at(t,()=>{ losers.forEach(b=>b.classList.add('lost')); burst(losers[0],['💸','💸'],6); sh.cap(`💸 낙찰받지 못한 ${losers.length}명의 입찰금은 모두 몰수!`,'bad'); }); t+=1600; }
     sh.at(t,()=>{ box.classList.add('shake'); sh.cap('📦 상자를 여는 중… 두근두근'); }); t+=1800;
     sh.at(t,()=>{ box.classList.remove('shake'); box.classList.add('open',d.box<0?'neg':'pos'); countUp(val,d.box,900);
       burst(box,d.box<0?['💸','💀','😱']:d.box===0?['💨']:['💰','🪙','✨'],d.box===0?6:16);
