@@ -260,6 +260,47 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .du-pair.draw .du-mid::before{content:'무승부';font-weight:900;color:var(--muted)}
 @keyframes punch{0%{transform:none}40%{transform:translateX(var(--px,24px)) scale(1.12)}100%{transform:none}}
 .du-s.r{--px:-24px}
+/* mines */
+.mn-turn{min-height:52px}
+.mn-tt{text-align:center;font-size:17px;padding:6px 0}
+.mn-tt.me{color:var(--gold);font-size:19px;animation:capPop .4s ease-out}
+.mn-bar{height:6px;background:#2a2f3d;border-radius:99px;overflow:hidden}.mn-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--red),var(--gold));transition:width .25s linear}
+.mn-wrap{position:relative;margin:8px auto 0;max-width:420px}
+.mn-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;padding:10px;border-radius:16px;background:#121a14;border:2px solid #2c4a33}
+.mn-grid.mine-turn{border-color:var(--gold);box-shadow:0 0 22px rgba(245,197,66,.35)}
+.mcell{position:relative;width:100%;min-width:0;aspect-ratio:1;border-radius:10px;border:none;background:linear-gradient(145deg,#4f7a52,#3a5c3d);box-shadow:inset 0 -4px 0 #2a4430;cursor:pointer;font:inherit;display:grid;place-items:center;font-size:24px;padding:0}
+.mn-grid.mine-turn .mcell:not(:disabled):hover{transform:translateY(-2px);filter:brightness(1.2)}
+.mcell:disabled{cursor:default}
+.mcell.safe{background:#2b3a2c;box-shadow:inset 0 2px 6px rgba(0,0,0,.4)}
+.mcell.boom{background:radial-gradient(circle,#ff8a3c,#7a1520 70%);box-shadow:inset 0 2px 6px rgba(0,0,0,.4)}
+.mcell .mav{position:absolute;right:2px;bottom:2px;width:42%;height:42%;object-fit:contain}
+.mcell .ms,.mcell .mb{font-size:26px}
+.mcell.lastp{outline:3px solid var(--gold);outline-offset:-2px}
+.mcell.pop{animation:capPop .35s ease-out}
+.mcell.explode{animation:mexp .6s ease-out}
+.mcell.hidden-mine{background:#3a2a2a;font-size:22px}
+@keyframes mexp{0%{transform:scale(1)}30%{transform:scale(1.5);filter:brightness(2.2)}100%{transform:scale(1)}}
+.mn-grid.shake{animation:mshake .5s}
+@keyframes mshake{0%,100%{translate:0 0}20%{translate:-8px 4px}40%{translate:7px -5px}60%{translate:-5px 3px}80%{translate:4px -2px}}
+.mn-boom{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;border-radius:16px}
+.mn-boom.on{display:flex;animation:mboom 2.2s ease-out forwards}
+@keyframes mboom{0%{background:rgba(255,120,40,.65);opacity:1}15%{background:rgba(255,60,40,.35)}75%{opacity:1}100%{opacity:0;background:transparent}}
+.mbx{font-size:110px;animation:capPop .4s ease-out}
+.mbt{background:#000c;color:#fff;padding:8px 16px;border-radius:12px;font-size:18px}
+.mn-intro{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;border-radius:16px;background:#0b0f0ce6;padding:14px;z-index:3}
+.mn-intro.on{display:flex;animation:capPop .4s ease-out}
+.mi-t{font-size:24px;font-weight:900;color:var(--gold)}
+.mn-intro.final .mi-t{color:#ff8a95}
+.mi-order{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;font-size:13px}.mi-order span{background:var(--card2);padding:3px 8px;border-radius:8px}
+.mn-surv{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.sv{position:relative;width:86px;text-align:center;padding:6px 4px;border-radius:12px;background:var(--card2);font-size:12px}
+.sv img{display:block;width:52px;height:46px;object-fit:contain;margin:0 auto 2px;animation:cheer 1.6s ease-in-out infinite}
+.sv span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sv i{display:block;font-style:normal;font-size:10px;color:var(--gold)}
+.sv.cur{outline:2px solid var(--gold);background:#3a3110}
+.sv.me span{color:var(--gold);font-weight:800}
+.sv.dead{opacity:.5}.sv.dead img{filter:grayscale(1);animation:none;transform:rotate(-12deg)}.sv.dead i{color:var(--red)}
+.mn-wrap.res .mn-grid{pointer-events:none}
 /* plinko */
 .pk-tbl{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;margin:6px 0 2px}
 .pk-cell{text-align:center;border-radius:8px;padding:6px 0;color:#3a2a1e}
@@ -442,6 +483,7 @@ const GAMES = {
   ,shell:{ name:'햄찌 야바위', icon:'🐹', stk:'nervous', desc:'해바라기씨를 문 햄스터를 2초간 보여준 뒤 눈으로 못 따라갈 속도로 섞어요. 섞기가 끝나면 씨앗을 문 햄스터를 골라요. 맞히면 건 금액의 3배(원금 포함)!' }
   ,lotto:{ name:'숫자 추첨', icon:'🔮', stk:'heartwave', desc:'1~20 공 중 추첨기에서 나올 숫자를 맞혀요. 숫자를 1~3개 고르고 숫자마다 같은 금액을 걸어요. 고른 숫자가 나오면 숫자당 금액의 20배를 받아요!' }
   ,plinko:{ name:'플링코', icon:'🌻', stk:'love', desc:'해바라기씨가 핀 사이를 튕기며 떨어져 9칸 중 하나에 들어가요. 가운데는 낮은 배수, 양끝은 최대 10배! 씨앗 1개당 금액과 개수를 정해서 떨어뜨려요.' }
+  ,mines:{ name:'지뢰찾기 서바이벌', icon:'💣', stk:'shock', desc:'5×5 보드에 지뢰 5개! 순서대로 칸을 하나씩 열어요. 지뢰를 밟으면 탈락, 최후의 1인이 판돈을 독식해요. 안전 칸이 다 열려도 2명 이상 남으면 새 보드로 결승 라운드!' }
 };
 // 경주 캐릭터 20종 (이미지 순서와 같음)
 const AVATAR_NAMES=['햄찌','레드','블루','그린','옐로','리본','신사','셰프','공룡','천사','마법사','탐정','기사','스포츠','시크','딸기','꿀벌','마도로스','털모자','임금님'];
@@ -534,6 +576,7 @@ function validate(type,d,params){
     case 'pd': return (d.c==='C'||d.c==='B')?{c:d.c}:null;
     case 'race': { const h=Math.floor(Number(d.h)), a=toAmt(d.a); return (h>=0&&h<RN&&a!==null&&a>0)?{h,a}:null; }
     case 'duel': { const a=toAmt(d.a); return (HANDS[d.r]&&a!==null)?{r:d.r,a}:null; }
+    case 'mines': { const c=Math.floor(Number(d.cell)); return (c>=0&&c<25)?{cell:c}:null; }
     case 'plinko': { const a=toAmt(d.a), c=Math.floor(Number(d.c)); return (a!==null&&a>0&&c>=1&&c<=PK_MAXBALL)?{a,c}:null; }
     case 'lotto': { const a=toAmt(d.a); if(!Array.isArray(d.nums)||a===null||a<=0) return null;
       const nums=[...new Set(d.nums.map(x=>Math.floor(Number(x))))].filter(x=>x>=1&&x<=20).sort((x,y)=>x-y);
@@ -656,6 +699,13 @@ function shellPlan(seed,shufMs){
 // 플링코: 핀 8줄 → 9칸. 칸별 도착 확률 = C(8,k)/256, 평균 회수율 약 98.8%
 const PK_ROWS=8, PK_MULT=[10,3,1.4,0.7,0.4,0.7,1.4,3,10], PK_MAXBALL=10;
 const pkSlot=path=>{ let k=0; for(let i=0;i<PK_ROWS;i++) if(path>>i&1) k++; return k; };
+function minesSettle(fee,players,alive){
+  const deltas={}, dead=players.filter(id=>!alive.includes(id));
+  if(!alive.length) return deltas;
+  const share=Math.floor(fee*dead.length/alive.length);
+  dead.forEach(id=>{ if(fee) deltas[id]=-fee; }); alive.forEach(id=>{ if(share) deltas[id]=share; });
+  return deltas;
+}
 // 한 번의 제출에서 거는 총액 (고정 참가비 게임은 0)
 function betTotal(type,d){
   if(!d) return 0;
@@ -724,7 +774,7 @@ let clockOffset=0, mySub={round:-1,data:null}, lastKey='', SEL={}, kicked=false,
 /* ================= 방장(호스트) ================= */
 function newState(code,title,hostPid,hostName){
   return { code, title, hostId:hostPid, phase:'lobby', round:0,
-    settings:{ startMoney:10000, rounds:5, timer:40, fee:1000, pdStake:2000, horses:6, rlTime:60, diceTime:20, shellTime:5, lottoTime:20, plinkoTime:20 },
+    settings:{ startMoney:10000, rounds:5, timer:40, fee:1000, pdStake:2000, horses:6, rlTime:60, diceTime:20, shellTime:5, lottoTime:20, plinkoTime:20, mineFee:1000, mineTurn:5 },
     players:{ [hostPid]:{ name:hostName, money:10000, online:true, last:0, av:Math.floor(Math.random()*PLAYER_AV.length) } },
     game:null, result:null };
 }
@@ -777,7 +827,7 @@ function hSettings(k,v){
   const st=HOST.state; if(st.phase!=='lobby') return;
   if(k==='title'){ st.title=String(v).trim().slice(0,30)||'머니 서바이벌'; return changed(); }
   if(k==='bots'){ setBots(Math.min(9,Math.max(1,Math.floor(Number(v))||1))); return changed(); }
-  const lim={ startMoney:[100,1e12], rounds:[1,30], timer:[10,300], fee:[0,1e12], pdStake:[0,1e12], horses:[2,AVATAR_NAMES.length], rlTime:[5,300], diceTime:[5,300], shellTime:[3,60], lottoTime:[5,300], plinkoTime:[5,300] }[k];
+  const lim={ startMoney:[100,1e12], rounds:[1,30], timer:[10,300], fee:[0,1e12], pdStake:[0,1e12], horses:[2,AVATAR_NAMES.length], rlTime:[5,300], diceTime:[5,300], shellTime:[3,60], lottoTime:[5,300], plinkoTime:[5,300], mineFee:[0,1e12], mineTurn:[3,60] }[k];
   if(!lim) return;
   let n=Math.floor(Number(v)); if(!Number.isFinite(n)) return changed();
   n=Math.min(lim[1],Math.max(lim[0],n)); st.settings[k]=n; changed();
@@ -786,8 +836,9 @@ function resetMoney(){ const st=HOST.state; for(const p of Object.values(st.play
 function hStartGame(){ const st=HOST.state; resetMoney(); st.round=0; st.result=null; st.game=null; st.phase='pick'; changed(); }
 function hStartRound(type){
   const st=HOST.state; if(st.phase!=='pick'&&st.phase!=='result') return;
-  if(type==='random'){ const ks=Object.keys(GAMES); type=ks[Math.floor(Math.random()*ks.length)]; }
   const online=Object.keys(st.players).filter(id=>st.players[id].online);
+  if(type==='random'){ const ks=Object.keys(GAMES).filter(k=>k!=='mines'||online.length>=2); type=ks[Math.floor(Math.random()*ks.length)]; }
+  if(type==='mines'&&online.length<2){ toast('지뢰찾기 서바이벌은 2명 이상이어야 시작할 수 있어요'); return; }
   const params={};
   if(type==='unique') params.fee=st.settings.fee;
   if(type==='pd'){ params.stake=st.settings.pdStake; params.pairs=makePairs(online); }
@@ -799,7 +850,9 @@ function hStartRound(type){
   const secs=type==='roulette'?(st.settings.rlTime||60):type==='dice'?(st.settings.diceTime||20):type==='shell'?(params.show+params.shuf+params.pick+600)/1000:type==='lotto'?(st.settings.lottoTime||20):type==='plinko'?(st.settings.plinkoTime||20):st.settings.timer;
   st.game={ type, params, eligible:online, submitted:{}, deadline:Date.now()+secs*1000 };
   if(type==='roulette'||type==='dice'||type==='lotto') st.game.stats={};
-  st.result=null; HOST.subs={}; st.phase='play'; changed();
+  st.result=null; HOST.subs={};
+  if(type==='mines'){ mInit(st.game); st.phase='play'; changed(); return; }
+  st.phase='play'; changed();
   scheduleBots();
 }
 /* ---- 컴퓨터(봇) ---- */
@@ -831,8 +884,50 @@ function createSingle(name,botCount){
   ME.pid=pid; ME.code=state.code;
   changed();
 }
+/* ---- 지뢰찾기 서바이벌 (차례제) ---- */
+function mNewMines(){ HOST.subs.__mines=shuffle(Array.from({length:25},(_,i)=>i)).slice(0,5); }
+function mInit(g){
+  const st=HOST.state;
+  g.params.fee=st.settings.mineFee||0; g.params.turnMs=(st.settings.mineTurn||5)*1000;
+  g.order=shuffle(g.eligible.slice()); g.alive=g.order.slice(); g.board=Array(25).fill(null);
+  g.cur=null; g.turnNo=0; g.final=0; g.elim=[]; g.last=null; g.deadline=Date.now()+3600e3;
+  g.intro={ kind:'start', until:Date.now()+3500 };
+  mNewMines(); mLater(3500,()=>mNextTurn(g.order[0]));
+}
+function mLater(ms,fn){ const r=HOST.state.round; setTimeout(()=>{ const st=HOST.state; if(st.round===r&&st.phase==='play'&&st.game&&st.game.type==='mines') fn(st.game); },ms); }
+function mNextAlive(g,after){ const n=g.order.length, i0=g.order.indexOf(after);
+  for(let k=1;k<=n;k++){ const id=g.order[(i0+k)%n]; if(g.alive.includes(id)&&HOST.state.players[id]) return id; } return g.alive[0]; }
+function mNextTurn(pid){
+  const st=HOST.state, g=st.game; g.intro=null;
+  g.alive=g.alive.filter(id=>st.players[id]);
+  if(g.alive.length<=1){ hClose(); return; }
+  if(!g.alive.includes(pid)) pid=mNextAlive(g,pid);
+  g.cur=pid; g.turnNo++; g.turnDeadline=Date.now()+g.params.turnMs; changed();
+  const p=st.players[pid], no=g.turnNo;
+  if(p&&p.bot) mLater(900+Math.random()*1800,g2=>{ if(g2.turnNo===no&&g2.cur===pid) mPick(pid,mRandomCell(g2),false); });
+}
+function mRandomCell(g){ const free=g.board.map((v,i)=>v?-1:i).filter(i=>i>=0); return free[Math.floor(Math.random()*free.length)]; }
+function mPick(pid,cell,auto){
+  const st=HOST.state; if(st.phase!=='play') return; const g=st.game;
+  if(!g||g.type!=='mines'||g.cur!==pid||g.board[cell]) return;
+  const boom=HOST.subs.__mines.includes(cell);
+  g.board[cell]={ id:pid, boom, auto:!!auto };
+  g.last={ cell, id:pid, boom, auto:!!auto, at:Date.now() }; g.cur=null;
+  if(boom){ g.alive=g.alive.filter(id=>id!==pid); g.elim.push({ id:pid, final:g.final }); }
+  changed();
+  mLater(boom?2300:900,g2=>{
+    if(g2.alive.length<=1){ mLater(600,()=>hClose()); return; }
+    const safeLeft=g2.board.filter((v,i)=>!v&&!HOST.subs.__mines.includes(i)).length;
+    if(safeLeft===0){ // 안전 칸이 모두 열렸는데 2명 이상 생존 → 결승 라운드
+      g2.final++; g2.prevBoard=g2.board.map((v,i)=>v||{mine:HOST.subs.__mines.includes(i)}); g2.board=Array(25).fill(null); mNewMines();
+      g2.intro={ kind:'final', until:Date.now()+3000 }; changed();
+      mLater(3000,()=>mNextTurn(mNextAlive(g2,pid))); return; }
+    mNextTurn(mNextAlive(g2,pid));
+  });
+}
 function hSubmit(pid,data){
   const st=HOST.state; if(st.phase!=='play') return;
+  if(st.game&&st.game.type==='mines'){ const c=validate('mines',data); if(c) mPick(pid,c.cell,false); return; }
   const g=st.game; if(!g.eligible.includes(pid)||g.submitted[pid]) return;
   const clean=validate(g.type,data,g.params); if(!clean) return;
   if(g.type==='shell'&&Date.now()<g.params.t0+g.params.show+g.params.shuf-300) return; // 섞기가 끝나기 전엔 선택 불가
@@ -843,13 +938,16 @@ function hSubmit(pid,data){
   if(g.type==='roulette') for(const [k,b] of Object.entries(clean.bets)){ const key=k+':'+b.v; g.stats[key]=(g.stats[key]||0)+1; } changed(); checkAllIn();
 }
 function checkAllIn(){
-  const st=HOST.state; if(st.phase!=='play') return;
+  const st=HOST.state; if(st.phase!=='play'||st.game.type==='mines') return;
   const g=st.game, need=g.eligible.filter(id=>st.players[id]&&st.players[id].online);
   if(need.length&&need.every(id=>g.submitted[id])){ const r=st.round; setTimeout(()=>{ if(HOST.state.round===r) hClose(); },900); }
 }
 function hClose(){
   const st=HOST.state; if(st.phase!=='play') return;
-  const g=st.game, res=resolve(g.type,g.params,HOST.subs);
+  const g=st.game, res=g.type==='mines'
+    ?{ deltas:minesSettle(g.params.fee,g.order.filter(id=>st.players[id]),g.alive.filter(id=>st.players[id])),
+       detail:{ order:g.order, alive:g.alive.slice(), elim:g.elim, board:g.board.map((v,i)=>v?{...v}:{mine:HOST.subs.__mines.includes(i)}), mines:HOST.subs.__mines.slice(), fee:g.params.fee, final:g.final } }
+    :resolve(g.type,g.params,HOST.subs);
   for(const p of Object.values(st.players)){ p.last=0; p.prev={ m:p.money, d:p.debt||0 }; }
   const loans={}, unit=st.settings.startMoney;
   for(const [id,d] of Object.entries(res.deltas)){ const p=st.players[id]; if(!p) continue;
@@ -1020,17 +1118,22 @@ function updateDynamic(){
       <span class="dl ${p.last>0?'up':'down'}">${p.last?signed(p.last):''}</span></div>`; }).join('');
   if(S.phase==='play'){
     const g=S.game, cnt=Object.keys(g.submitted).length, sc=$('#subcount');
-    if(sc) sc.textContent=`${cnt}/${g.eligible.length}명 제출`;
+    if(sc) sc.textContent=g.type==='mines'?`생존 ${g.alive.length}/${g.order.length}명`:`${cnt}/${g.eligible.length}명 제출`;
+    if(g.type==='mines') mUpdate();
     if(g.type==='roulette'||g.type==='dice'||g.type==='lotto') document.querySelectorAll('[data-ck]').forEach(e=>{ const c=(g.stats||{})[e.dataset.ck]; e.textContent=c?c+'명':''; });
     tick();
   }
 }
 function tick(){
+  if(S&&S.phase==='play'&&S.game.type==='mines') return mTick();
   if(!S||S.phase!=='play'||S.game.type==='shell') return; const el=$('#timer'); if(!el) return;
   const rem=Math.max(0,Math.ceil((S.game.deadline-(Date.now()-clockOffset))/1000));
   el.textContent=rem>0?rem+'초':'마감!'; el.classList.toggle('urgent',rem<=5);
 }
-setInterval(()=>{ tick(); if(HOST&&HOST.state.phase==='play'&&Date.now()>=HOST.state.game.deadline) hClose(); },250);
+setInterval(()=>{ tick(); if(HOST&&HOST.state.phase==='play'&&Date.now()>=HOST.state.game.deadline) hClose();
+  // 지뢰찾기: 시간 안에 못 고르면 무작위 칸 자동 선택
+  if(HOST&&HOST.state.phase==='play'){ const g=HOST.state.game; if(g.type==='mines'&&g.cur&&Date.now()>g.turnDeadline+300) mPick(g.cur,mRandomCell(g),true); }
+},250);
 
 function stageHTML(){
   switch(S.phase){
@@ -1042,7 +1145,7 @@ function stageHTML(){
   }
   return '';
 }
-const SETTINGS=[['startMoney','시작 금액'],['rounds','라운드 수'],['timer','제한 시간(초)'],['fee','유일 숫자 참가비'],['pdStake','협력/배신 기본 판돈'],['horses','경마 출전 수 (2~20)'],['rlTime','룰렛 베팅 시간(초)'],['diceTime','주사위 홀짝 선택 시간(초)'],['shellTime','야바위 선택 시간(초)'],['lottoTime','숫자 추첨 선택 시간(초)'],['plinkoTime','플링코 베팅 시간(초)']];
+const SETTINGS=[['startMoney','시작 금액'],['rounds','라운드 수'],['timer','제한 시간(초)'],['fee','유일 숫자 참가비'],['pdStake','협력/배신 기본 판돈'],['horses','경마 출전 수 (2~20)'],['rlTime','룰렛 베팅 시간(초)'],['diceTime','주사위 홀짝 선택 시간(초)'],['shellTime','야바위 선택 시간(초)'],['lottoTime','숫자 추첨 선택 시간(초)'],['plinkoTime','플링코 베팅 시간(초)'],['mineFee','지뢰찾기 참가비'],['mineTurn','지뢰찾기 차례 시간(초)']];
 function lobbyHTML(){
   const st=S.settings;
   const botCount=Object.values(S.players).filter(p=>p.bot).length;
@@ -1090,6 +1193,7 @@ function describeSub(type,d){
   return '';
 }
 function playHTML(){
+  if(S.game.type==='mines') return minesPlayHTML();
   const g=S.game, G=GAMES[g.type], elig=g.eligible.includes(ME.pid), done=mySub.round===S.round;
   let extra='';
   if(g.type==='unique') extra=`<br>참가비: <b>${fmt(g.params.fee)}원</b>`;
@@ -1145,6 +1249,7 @@ function bindStage(){
     if(t.dataset.game) return hStartRound(t.dataset.game);
     if(t.dataset.grp){ st.querySelectorAll(`[data-grp="${t.dataset.grp}"]`).forEach(b=>b.classList.toggle('active',b===t)); SEL[t.dataset.grp]=t.dataset.sel; if(t.dataset.grp==='pc') pkTotal(); return; }
     if(t.dataset.pd) return submit({c:t.dataset.pd});
+    if(t.dataset.mc) return mClick(+t.dataset.mc);
     if(t.dataset.allin){ const a=$('#amt'); if(a) a.value=t.dataset.allin==='lotto'?Math.floor(myMoney()/Math.max(1,(SEL.ln||[]).length)):t.dataset.allin==='plinko'?Math.floor(myMoney()/Math.max(1,+(SEL.pc||1))):myMoney(); lottoTotal(); pkTotal(); return; }
     if(t.dataset.ln) return lottoPick(+t.dataset.ln);
     if(t.dataset.rk) return rlPick(t.dataset.rk,t.dataset.rv);
@@ -1181,7 +1286,7 @@ function resultHTML(){
   const ln=Object.entries(r.loans||{});
   const loanHTML=ln.length?`<div class="loanbox">${stk('cryPuddle','mstk')}<div><b>💳 파산!</b> 보유금을 모두 잃어 빚을 졌어요<div class="deltas">${ln.map(([id,a])=>`<span class="pill">${nameOf(id)} <b class="down">빚 +${fmt(a)}</b></span>`).join('')}</div></div></div>`:'';
   return `<div class="ghead"><div class="gicon">${gimg(G)}</div><div><div class="gname">라운드 ${r.round} 결과 · ${G.name}</div></div></div>
-    <div id="rbody">${resultBody(r)}</div><div id="reveal" class="hidden">${r.type==='race'?raceReveal(r.detail):r.type==='roulette'?rlReveal(r.detail):r.type==='dice'?diceReveal(r.detail):r.type==='shell'?shellReveal(r.detail):r.type==='lotto'?lottoReveal(r.detail):r.type==='plinko'?pkReveal(r.detail):`<div class="sec">📋 결과 요약</div>${resultBodyOld(r)}`}${loanHTML}${deltas}${next}</div>`;
+    <div id="rbody">${resultBody(r)}</div><div id="reveal" class="hidden">${r.type==='race'?raceReveal(r.detail):r.type==='roulette'?rlReveal(r.detail):r.type==='dice'?diceReveal(r.detail):r.type==='shell'?shellReveal(r.detail):r.type==='lotto'?lottoReveal(r.detail):r.type==='plinko'?pkReveal(r.detail):r.type==='mines'?minesReveal(r.detail):`<div class="sec">📋 결과 요약</div>${resultBodyOld(r)}`}${loanHTML}${deltas}${next}</div>`;
 }
 const SHOW_TYPES=['unique','auction','pd','duel'];
 function resultBody(r){ return SHOW_TYPES.includes(r.type)?showStage(r):resultBodyOld(r); }
@@ -1225,6 +1330,7 @@ function resultBodyOld(r){
   if(r.type==='shell') return shellResultStage(r.detail);
   if(r.type==='lotto') return lottoStageHTML(r.detail);
   if(r.type==='plinko') return pkStageHTML(r.detail);
+  if(r.type==='mines') return `<div class="showcap" id="showcap">🏁 게임 종료!</div>`;
   if(r.type==='duel'){
     const face=dv=>dv>0?'excited':dv<0?'cry':'shrug';
     const side=(h,a,m)=>`${HANDS[h]} · ${fmt(a)}원${m?' <span class="muted">(미제출)</span>':''}`;
@@ -1250,6 +1356,7 @@ function afterStage(){
   if(S.phase==='result'&&S.result.type==='shell') runShellReveal();
   if(S.phase==='result'&&S.result.type==='lotto') runLotto();
   if(S.phase==='result'&&S.result.type==='plinko') runPlinko();
+  if(S.phase==='result'&&S.result.type==='mines') runMinesResult();
   if(S.phase==='play'&&S.game.type==='shell') runShellPlay();
   if(S.phase==='play'&&S.game.type==='plinko'&&$('#pktotal')){ SEL.pc='1'; pkTotal(); const a=$('#amt'); if(a) a.oninput=pkTotal; }
   if(S.phase==='play'&&S.game.type==='lotto'&&$('#lttotal')){ SEL.ln=[]; lottoTotal(); const a=$('#amt'); if(a) a.oninput=lottoTotal; }
@@ -1440,6 +1547,81 @@ function runRace(){
   }
   requestAnimationFrame(frame);
 }
+/* ===== 지뢰찾기 서바이벌 화면 ===== */
+let M_PREV=null;
+function minesPlayHTML(){
+  const g=S.game, G=GAMES.mines; M_PREV=null;
+  return `<div class="ghead"><div class="gicon">${gimg(G)}</div><div><div class="gname">라운드 ${S.round} · ${G.name}</div>
+      <div class="gdesc">참가비 <b>${fmt(g.params.fee)}원</b> × ${g.order.length}명 = 판돈 <b class="up">${fmt(g.params.fee*g.order.length)}원</b> · 차례마다 <b>${g.params.turnMs/1000}초</b> (시간 초과 시 무작위 칸)<br>
+      <span class="muted">⚔️ 결승 규칙: 안전 칸 20개가 모두 열려도 2명 이상 남으면, 지뢰 5개를 다시 깐 새 보드에서 생존자끼리 이어서 진행해요.</span></div></div></div>
+    <div class="timerbar"><div class="timer" id="timer">--</div><div class="muted" id="subcount"></div></div>
+    <div class="mn-turn" id="mturn"></div>
+    <div class="mn-wrap"><div class="mn-grid" id="mgrid">${Array.from({length:25},(_,i)=>`<button class="mcell" data-mc="${i}"></button>`).join('')}</div><div class="mn-boom" id="mboom"></div><div class="mn-intro" id="mintro"></div></div>
+    <div class="sec">🧍 생존자 <span class="muted" style="font-weight:500;font-size:13px">(참가 순서)</span></div><div class="mn-surv" id="msurv"></div>
+    ${ME.isHost?`<button class="btn ghost" id="closeBtn">⏹ 지금 마감하기 (탈락자 참가비를 생존자끼리 나눔)</button>`:''}`;
+}
+function mTurnLeft(g){ return Math.max(0,Math.ceil((g.turnDeadline-(Date.now()-clockOffset))/1000)); }
+function mTick(){ const g=S.game, el=$('#timer'); if(!el) return;
+  if(g.intro){ el.textContent=g.intro.kind==='final'?'결승!':'준비'; el.classList.remove('urgent'); return; }
+  if(!g.cur){ el.textContent='…'; el.classList.remove('urgent'); return; }
+  const r=mTurnLeft(g); el.textContent=r>0?r+'초':'시간 초과!'; el.classList.toggle('urgent',r<=2);
+  const bar=$('#mbar'); if(bar) bar.style.width=Math.max(0,((g.turnDeadline-(Date.now()-clockOffset))/g.params.turnMs)*100)+'%'; }
+function mUpdate(){
+  const g=S.game, grid=$('#mgrid'); if(!grid) return;
+  const myTurn=g.cur===ME.pid;
+  grid.classList.toggle('mine-turn',myTurn);
+  [...grid.children].forEach((b,i)=>{ const v=g.board[i];
+    b.className='mcell'+(v?(v.boom?' boom':' safe'):'')+(g.last&&g.last.cell===i?' lastp':'');
+    b.disabled=!!v||!myTurn;
+    b.innerHTML=v?(v.boom?`<span class="mb">💥</span><img class="mav" src="${PLAYER_AV[avIdx(v.id)]}" alt="">`:`<span class="ms">🌻</span><img class="mav" src="${PLAYER_AV[avIdx(v.id)]}" alt="">`):''; });
+  // 새로 열린 칸 감지 → 폭발/안전 연출
+  const sig=JSON.stringify(g.board.map(v=>v?(v.boom?2:1):0))+g.final;
+  if(M_PREV!==null&&sig!==M_PREV&&g.last&&g.board[g.last.cell]){ const L=g.last, cell=grid.children[L.cell];
+    if(L.boom){ mExplode(cell,L); } else { cell.classList.add('pop'); burst(cell,['🌻','✨'],6); } }
+  M_PREV=sig;
+  // 차례 안내
+  const turn=$('#mturn');
+  if(turn){ if(g.intro) turn.innerHTML='';
+    else if(g.cur) turn.innerHTML=`<div class="mn-tt ${myTurn?'me':''}">${myTurn?'👉 <b>내 차례!</b> 안전해 보이는 칸을 눌러요':`<b>${nameOf(g.cur)}</b> 님 차례…`}</div><div class="mn-bar"><i id="mbar"></i></div>`;
+    else turn.innerHTML=`<div class="mn-tt">…</div>`; }
+  // 인트로 (순서 공개 / 결승)
+  const intro=$('#mintro');
+  if(intro){ if(g.intro){ intro.className='mn-intro on '+g.intro.kind;
+      intro.innerHTML=g.intro.kind==='final'?`<div class="mi-t">⚔️ 결승 라운드${g.final>1?' '+g.final:''}!</div><div>안전 칸이 모두 열렸어요!<br>지뢰 5개를 다시 깔고 <b>${g.alive.length}명</b>이 이어서 겨뤄요</div>`
+        :`<div class="mi-t">💣 지뢰 5개 배치 완료!</div><div>참가 순서</div><div class="mi-order">${g.order.map((id,i)=>`<span>${i+1}. ${nameOf(id)}</span>`).join('')}</div>`; }
+    else intro.className='mn-intro'; }
+  // 생존자 목록
+  const sv=$('#msurv');
+  if(sv) sv.innerHTML=g.order.map((id,i)=>{ const dead=!g.alive.includes(id), k=g.elim.findIndex(e=>e.id===id);
+    return `<div class="sv ${dead?'dead':''} ${g.cur===id?'cur':''} ${id===ME.pid?'me':''}"><img src="${PLAYER_AV[avIdx(id)]}" alt=""><span>${plainName(id)}</span>${dead?`<i>💥 ${k+1}번째 탈락</i>`:g.cur===id?'<i>차례!</i>':''}</div>`; }).join('');
+  mTick();
+}
+function mExplode(cell,L){
+  const grid=$('#mgrid'), ov=$('#mboom');
+  cell.classList.add('explode'); grid.classList.remove('shake'); void grid.offsetWidth; grid.classList.add('shake');
+  burst(cell,['💥','🔥','💨'],16);
+  if(ov){ ov.innerHTML=`<div class="mbx">💥</div><div class="mbt"><b>${plainName(L.id)}</b> 님 지뢰 밟음! 탈락${L.auto?' <small>(시간 초과)</small>':''}</div>`; ov.classList.remove('on'); void ov.offsetWidth; ov.classList.add('on'); }
+}
+function mClick(cell){
+  const g=S.game; if(!g||g.type!=='mines') return;
+  if(g.cur!==ME.pid) return toast('아직 내 차례가 아니에요');
+  if(g.board[cell]) return toast('이미 열린 칸이에요');
+  if(ME.isHost) hSubmit(ME.pid,{cell});
+  else if(CL&&CL.conn&&CL.conn.open) CL.conn.send({t:'act',round:S.round,data:{cell}});
+  else toast('연결이 끊겨 선택하지 못했어요');
+}
+function minesBoardHTML(d){
+  return `<div class="mn-grid done">${d.board.map(v=>v.id?`<div class="mcell ${v.boom?'boom':'safe'}">${v.boom?'<span class="mb">💥</span>':'<span class="ms">🌻</span>'}<img class="mav" src="${PLAYER_AV[avIdx(v.id)]}" alt=""></div>`:`<div class="mcell ${v.mine?'hidden-mine':''}">${v.mine?'💣':''}</div>`).join('')}</div>`;
+}
+function minesReveal(d){
+  const win=d.alive.length===1?d.alive[0]:null, pot=d.fee*d.order.length;
+  return `<div class="announce">${stk('sparkle','rx bounce')}${win?`최후의 생존자<big>${nameOf(win)}</big>판돈 <b class="up">${fmt(pot)}원</b> 독식!`:`생존자 <b>${d.alive.length}명</b>이 탈락자 참가비를 나눠 가져요`}${d.final?`<div class="muted" style="font-size:14px">⚔️ 결승 라운드 ${d.final}회 진행</div>`:''}</div>
+    <div class="mn-wrap res">${minesBoardHTML(d)}</div><div class="muted rl-tip" style="text-align:center">💣 = 아무도 밟지 않은 지뢰 위치${d.final?' (마지막 보드)':''}</div>
+    <div class="sec">탈락 순서</div><div class="list">${d.elim.map((e,i)=>`<div class="li"><span>${i+1}번째 탈락 · ${nameOf(e.id)}${e.final?' <span class="muted">(결승)</span>':''}</span><b class="down">-${fmt(d.fee)}</b></div>`).join('')||'<div class="muted">탈락자 없음</div>'}
+      ${d.alive.map(id=>`<div class="li win"><span>🏆 생존 · ${nameOf(id)}</span><b class="up">+${fmt(Math.floor(d.fee*(d.order.length-d.alive.length)/Math.max(1,d.alive.length)))}</b></div>`).join('')}</div>`;
+}
+function runMinesResult(){ const sh=makeShow(); sh.at(1600,()=>sh.end()); }
+
 /* ===== 플링코 화면 ===== */
 const PK_PROB=[1,8,28,56,70,56,28,8,1].map(x=>x/256);
 const pkCls=m=>m>=10?'m10':m>=3?'m3':m>=1?'m1':m>=0.7?'m07':'m04';
