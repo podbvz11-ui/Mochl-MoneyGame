@@ -44,6 +44,7 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .sub{font-size:13px;color:var(--muted)}
 .room{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
 .code-label{font-size:12px;color:var(--muted)}
+.rbtns{display:flex;flex-direction:column;gap:6px}
 .code{font-size:22px;font-weight:800;letter-spacing:3px;color:var(--gold)}
 .banner{max-width:1200px;margin:0 auto 8px;padding:10px 16px;background:#3a1d22;border:1px solid #6b2c36;border-radius:10px;display:flex;gap:10px;align-items:center;justify-content:space-between}
 .grid{display:grid;grid-template-columns:1fr 330px;gap:16px;padding:0 16px 24px;max-width:1200px;margin:0 auto;align-items:start}
@@ -1328,6 +1329,7 @@ function onClientData(d){
   if(d.t==='state'){ clockOffset=Date.now()-d.now; S=d.s; if(S.phase==='lobby') mySub={round:-1,data:null}; render(); }
   else if(d.t==='welcome'){ ME.pid=d.pid; }
   else if(d.t==='kicked'){ kicked=true; S=null; showCenter('방장이 이 방에서 내보냈어요.'); }
+  else if(d.t==='closed'){ kicked=true; S=null; try{ CL&&CL.peer&&CL.peer.destroy(); }catch(e){} showCenter(`${stk('wave','rx')}방장이 방을 닫았어요.<br><span class="muted">방장이 같은 방을 다시 열면 이 링크로 다시 들어올 수 있어요.</span><br><br><button class="btn" onclick="location.reload()">다시 접속해 보기</button> <button class="btn" onclick="location.href=baseUrl()">처음 화면으로</button>`); }
 }
 function onClientClose(){ if(kicked) return; setBanner('방장과 연결이 끊겼어요.'); }
 function setBanner(msg){
@@ -1377,7 +1379,7 @@ function shell(){
     <div class="brand"><span class="logo">💰</span><div><div class="title" id="hTitle"></div><div class="sub" id="hMeta"></div></div></div>
     ${S.single
       ? `<div class="room"><div><div class="code-label">모드</div><div class="code" id="hCode"></div></div><button class="btn sm" id="homeBtn">처음으로</button></div>`
-      : `<div class="room"><div><div class="code-label">방 코드</div><div class="code" id="hCode"></div></div><button class="btn sm" id="copyLink">참여 링크 복사</button></div>`}
+      : `<div class="room"><div><div class="code-label">방 코드</div><div class="code" id="hCode"></div></div><div class="rbtns">${ME.isHost?'<button class="btn sm" id="copyLink">참여 링크 복사</button><button class="btn sm" id="homeBtn">처음으로</button>':''}</div></div>`}
   </header>
   <div id="banner" class="banner hidden"></div>
   <main class="grid"><section class="card stage" id="stage"></section><aside class="card board"><h3>💸 순위</h3><div id="board"></div></aside></main>`;
@@ -1394,7 +1396,14 @@ function render(){
   setBg(S.bg);
   if(!$('#stage')){
     $('#app').innerHTML=shell(); lastKey='';
-    if($('#homeBtn')) $('#homeBtn').onclick=()=>{ if(confirm('싱글 게임을 끝내고 처음 화면으로 갈까요?')) location.href=baseUrl(); };
+    if($('#homeBtn')) $('#homeBtn').onclick=()=>{
+      if(!ME.isHost) return;   // 방장만 사용 가능
+      const msg=S.single?'싱글 게임을 끝내고 처음 화면으로 갈까요?'
+        :ME.isHost?'방을 닫고 처음 화면으로 갈까요?\n시청자들의 연결이 끊겨요.\n(나중에 첫 화면의 "진행 중이던 방 다시 열기"로 이어서 할 수 있어요)'
+        :'방에서 나가 처음 화면으로 갈까요?\n같은 링크로 다시 들어오면 보유금 그대로 이어서 참여할 수 있어요.';
+      if(!confirm(msg)) return;
+      if(HOST&&!S.single){ for(const c of HOST.conns.keys()) if(c.open) try{ c.send({t:'closed'}); }catch(e){} }
+      setTimeout(()=>{ try{ if(HOST&&HOST.peer) HOST.peer.destroy(); }catch(e){} location.href=baseUrl(); },S.single?0:400); };
     if($('#copyLink')) $('#copyLink').onclick=()=>{ const url=baseUrl()+'?room='+S.code; (navigator.clipboard?navigator.clipboard.writeText(url):Promise.reject()).then(()=>toast('참여 링크를 복사했어요'),()=>prompt('이 링크를 복사하세요',url)); };
     $('#board').onclick=e=>{ const k=e.target.closest('[data-kick]'); if(k&&ME.isHost) hKick(k.dataset.kick); };
   }
