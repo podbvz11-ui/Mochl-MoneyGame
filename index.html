@@ -167,6 +167,47 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#000c;color:#fff;padding:10px 16px;border-radius:10px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.show{opacity:1}
 .center{text-align:center;padding:40px 16px}
+/* roulette */
+.rl-hist{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:6px 0 10px;font-size:13px}
+.rl-hist .muted{margin-right:4px}
+.rl-chip{display:inline-grid;place-items:center;min-width:26px;height:26px;border-radius:7px;font-weight:800;font-size:13px;color:#fff}
+.rl-chip.new{outline:2px solid var(--gold)}
+.r{background:#c8283a}.b{background:#23262f}.g{background:#14894a}
+.rl-board{display:grid;grid-template-columns:44px 1fr;gap:4px}
+.rl-nums{display:grid;grid-template-columns:repeat(12,1fr);gap:4px}
+@media(max-width:620px){.rl-nums{grid-template-columns:repeat(6,1fr)}}
+.rl-n{position:relative;border:1px solid #3a3f50;border-radius:7px;color:#fff;font-weight:800;padding:9px 0;cursor:pointer;font:inherit;font-weight:800}
+.rl-n.zero{height:100%}
+.rl-n.active,.rl-o.active{outline:3px solid var(--gold);outline-offset:-1px;box-shadow:0 0 0 3px rgba(245,197,66,.25)}
+.cnt{position:absolute;right:2px;top:1px;font-size:9px;font-style:normal;font-weight:700;color:var(--gold)}
+.rl-tip{font-size:12px;margin:6px 0 10px}
+.rl-outs{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.rl-grp{background:#12151c;border:1px solid var(--line);border-radius:10px;padding:8px}
+.rl-gl{font-size:13px;font-weight:700;margin-bottom:6px}
+.rl-go{display:flex;gap:6px}
+.rl-o{position:relative;flex:1;padding:9px 4px;font-size:13px}
+.rl-o.r{background:#7a1a25}.rl-o.b{background:#14161c}
+.rl-slip{display:grid;gap:6px;margin-top:6px}
+.rl-row{display:grid;grid-template-columns:1fr 140px auto;gap:8px;align-items:center;background:var(--card2);border-radius:10px;padding:6px 8px}
+.rl-row input{padding:8px}
+.rl-stage{position:relative;width:min(340px,86vw);margin:10px auto 0}
+.rl-wheel{width:100%;display:block;filter:drop-shadow(0 8px 18px rgba(0,0,0,.5))}
+.rl-pointer{position:absolute;left:50%;top:-6px;transform:translateX(-50%);color:var(--gold);font-size:22px;z-index:2}
+.rl-center{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;opacity:0;transition:opacity .3s}
+.rl-center.show{opacity:1}
+.rl-big{display:inline-grid;place-items:center;min-width:64px;height:64px;padding:0 8px;border-radius:14px;color:#fff;font-size:38px;font-weight:900;border:3px solid var(--gold);animation:pulse 1s ease-in-out infinite}
+.rl-ann big{margin:10px 0}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.rl-party{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin:6px 0 4px}
+.rl-w{text-align:center;font-size:13px}
+.rl-wav{width:70px;height:62px;object-fit:contain;display:block;margin:0 auto 2px;animation:cheer .7s ease-in-out infinite}
+.rl-w:nth-child(2n) .rl-wav{animation-delay:.2s}
+.rl-heat{display:grid;grid-template-columns:repeat(19,1fr);gap:3px;margin-top:8px}
+@media(max-width:620px){.rl-heat{grid-template-columns:repeat(10,1fr)}}
+.hc{position:relative;text-align:center;font-size:11px;font-weight:800;color:#fff;border-radius:5px;padding:5px 0 9px;opacity:.75}
+.hc i{position:absolute;left:0;right:0;bottom:0;font-size:9px;font-style:normal;color:var(--gold)}
+.hc.hit{opacity:1;outline:2px solid var(--gold)}
+.pill.hitp{outline:1px solid var(--green)}
 /* stickers */
 .gicon{width:64px;height:58px;flex:none}
 .gimg{width:64px;height:58px;object-fit:contain}
@@ -222,12 +263,26 @@ const GAMES = {
   pd:      { name:'협력 / 배신', icon:'🤝', stk:'heart', desc:'랜덤으로 짝을 지어요. 둘 다 협력하면 둘 다 이득, 둘 다 배신하면 둘 다 손해, 한 명만 배신하면 배신자가 크게 벌고 협력한 쪽이 크게 잃어요.' },
   race:    { name:'경마 베팅', icon:'🏇', stk:'flyCape', desc:'우승할 말 한 마리에 원하는 만큼 거세요. 맞히면 배당만큼 돌려받고, 틀리면 건 돈을 잃어요.' },
   duel:    { name:'1:1 대결', icon:'⚔️', stk:'boxRed', desc:'랜덤으로 짝을 지어 가위바위보! 각자 금액을 쓰면 둘 중 더 큰 금액이 판돈이 되고, 이긴 사람이 진 사람에게서 판돈만큼 가져갑니다.' }
+  ,roulette:{ name:'룰렛', icon:'🎡', stk:'excited', desc:'유럽식 룰렛(0~36). 색·홀짝·낮음/높음·구간·숫자에 걸어 결과를 맞혀요. 항목마다 하나씩, 여러 항목에 동시에 걸 수 있어요. 0이 나오면 숫자 0 외에는 모두 실패!' }
 };
 // 경주 캐릭터 20종 (이미지 순서와 같음)
 const AVATAR_NAMES=['햄찌','레드','블루','그린','옐로','리본','신사','셰프','공룡','천사','마법사','탐정','기사','스포츠','시크','딸기','꿀벌','마도로스','털모자','임금님'];
 const HANDS = { R:'✊ 바위', P:'✋ 보', S:'✌️ 가위' };
 const BEATS = { R:'S', S:'P', P:'R' };
 
+// 룰렛: 유럽식 휠 순서와 빨간 숫자
+const RL_ORDER=[0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
+const RL_RED=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+const rlColor=n=>n===0?'G':RL_RED.has(n)?'R':'B';
+const RL_KINDS={
+  color: { label:'색',        mult:2,  opts:{R:'빨강',B:'검정'},                  win:(n,v)=>n!==0&&rlColor(n)===v },
+  parity:{ label:'홀/짝',     mult:2,  opts:{O:'홀',E:'짝'},                      win:(n,v)=>n!==0&&(n%2?'O':'E')===v },
+  hl:    { label:'낮음/높음', mult:2,  opts:{L:'낮음 1~18',H:'높음 19~36'},        win:(n,v)=>n!==0&&(n<=18?'L':'H')===v },
+  dozen: { label:'구간',      mult:3,  opts:{'1':'1~12','2':'13~24','3':'25~36'}, win:(n,v)=>n!==0&&String(Math.ceil(n/12))===v },
+  num:   { label:'숫자',      mult:36, opts:null,                                 win:(n,v)=>n===Number(v) }
+};
+const rlOptName=(k,v)=>k==='num'?'숫자 '+v:RL_KINDS[k].opts[v];
+function rlValidV(k,v){ v=String(v); if(k==='num') return /^\d{1,2}$/.test(v)&&Number(v)<=36; return Object.prototype.hasOwnProperty.call(RL_KINDS[k].opts,v); }
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function makePairs(ids){
   const s=shuffle(ids.slice()), pairs=[];
@@ -301,6 +356,14 @@ function validate(type,d,params){
     case 'pd': return (d.c==='C'||d.c==='B')?{c:d.c}:null;
     case 'race': { const h=Math.floor(Number(d.h)), a=toAmt(d.a); return (h>=0&&h<RN&&a!==null&&a>0)?{h,a}:null; }
     case 'duel': { const a=toAmt(d.a); return (HANDS[d.r]&&a!==null)?{r:d.r,a}:null; }
+    case 'roulette': {
+      if(!d.bets||typeof d.bets!=='object') return null;
+      const out={};
+      for(const k of Object.keys(RL_KINDS)){ const b=d.bets[k]; if(!b) continue;
+        const a=toAmt(b.a); if(a===null||a<=0||!rlValidV(k,b.v)) return null;
+        out[k]={ v:k==='num'?String(Number(b.v)):String(b.v), a }; }
+      return Object.keys(out).length?{bets:out}:null;
+    }
   }
   return null;
 }
@@ -361,6 +424,14 @@ function resolve(type,params,subs){
     });
     return { deltas, detail:{ rows } };
   }
+  if(type==='roulette'){
+    const n=Math.floor(Math.random()*37);
+    const rows=Object.entries(subs).map(([id,s])=>{
+      const items=Object.entries(s.bets).map(([k,b])=>{ const w=RL_KINDS[k].win(n,b.v); return { k, v:b.v, a:b.a, win:w, d:w?b.a*(RL_KINDS[k].mult-1):-b.a }; });
+      const d=items.reduce((t,x)=>t+x.d,0); add(id,d); return { id, items, d };
+    }).sort((x,y)=>y.d-x.d);
+    return { deltas, detail:{ n, rows, seed:Math.floor(Math.random()*2147483647) } };
+  }
   return { deltas, detail:{} };
 }
 
@@ -373,6 +444,12 @@ function botMove(type,money,params){
     case 'auction': return { bid: Math.random()<0.2?0:Math.round((2000+Math.random()*28000)/1000)*1000 };
     case 'pd': return { c: Math.random()<0.55?'C':'B' };
     case 'race': { const R=params.runners; return { h: Math.random()<0.25?Math.floor(Math.random()*R.length):pickRunner(R), a: botAmount(money,0.1,0.4,100) }; }
+    case 'roulette': {
+      const ks=shuffle(Object.keys(RL_KINDS)).slice(0,1+Math.floor(Math.random()*3)), bets={};
+      for(const k of ks){ const v=k==='num'?String(Math.floor(Math.random()*37)):shuffle(Object.keys(RL_KINDS[k].opts))[0];
+        bets[k]={ v, a:botAmount(money,k==='num'?0.02:0.06,k==='num'?0.08:0.22,100) }; }
+      return { bets };
+    }
     case 'duel': return { r: randHand(), a: Math.random()<0.15?0:botAmount(money,0.05,0.35,100) };
   }
   return null;
@@ -399,7 +476,7 @@ let clockOffset=0, mySub={round:-1,data:null}, lastKey='', SEL={}, kicked=false,
 /* ================= 방장(호스트) ================= */
 function newState(code,title,hostPid,hostName){
   return { code, title, hostId:hostPid, phase:'lobby', round:0,
-    settings:{ startMoney:10000, rounds:5, timer:40, fee:1000, pdStake:2000, horses:6 },
+    settings:{ startMoney:10000, rounds:5, timer:40, fee:1000, pdStake:2000, horses:6, rlTime:60 },
     players:{ [hostPid]:{ name:hostName, money:10000, online:true, last:0, av:Math.floor(Math.random()*PLAYER_AV.length) } },
     game:null, result:null };
 }
@@ -452,7 +529,7 @@ function hSettings(k,v){
   const st=HOST.state; if(st.phase!=='lobby') return;
   if(k==='title'){ st.title=String(v).trim().slice(0,30)||'머니 서바이벌'; return changed(); }
   if(k==='bots'){ setBots(Math.min(9,Math.max(1,Math.floor(Number(v))||1))); return changed(); }
-  const lim={ startMoney:[0,1e12], rounds:[1,30], timer:[10,300], fee:[0,1e12], pdStake:[0,1e12], horses:[2,AVATAR_NAMES.length] }[k];
+  const lim={ startMoney:[0,1e12], rounds:[1,30], timer:[10,300], fee:[0,1e12], pdStake:[0,1e12], horses:[2,AVATAR_NAMES.length], rlTime:[5,300] }[k];
   if(!lim) return;
   let n=Math.floor(Number(v)); if(!Number.isFinite(n)) return changed();
   n=Math.min(lim[1],Math.max(lim[0],n)); st.settings[k]=n; changed();
@@ -469,7 +546,9 @@ function hStartRound(type){
   if(type==='duel') params.pairs=makePairs(online);
   if(type==='race') params.runners=makeRunners(st.settings.horses||6);
   st.round+=1;
-  st.game={ type, params, eligible:online, submitted:{}, deadline:Date.now()+st.settings.timer*1000 };
+  const secs=type==='roulette'?(st.settings.rlTime||60):st.settings.timer;
+  st.game={ type, params, eligible:online, submitted:{}, deadline:Date.now()+secs*1000 };
+  if(type==='roulette') st.game.stats={};
   st.result=null; HOST.subs={}; st.phase='play'; changed();
   scheduleBots();
 }
@@ -506,7 +585,8 @@ function hSubmit(pid,data){
   const st=HOST.state; if(st.phase!=='play') return;
   const g=st.game; if(!g.eligible.includes(pid)||g.submitted[pid]) return;
   const clean=validate(g.type,data,g.params); if(!clean) return;
-  HOST.subs[pid]={...clean,ts:Date.now()}; g.submitted[pid]=true; changed(); checkAllIn();
+  HOST.subs[pid]={...clean,ts:Date.now()}; g.submitted[pid]=true;
+  if(g.type==='roulette') for(const [k,b] of Object.entries(clean.bets)){ const key=k+':'+b.v; g.stats[key]=(g.stats[key]||0)+1; } changed(); checkAllIn();
 }
 function checkAllIn(){
   const st=HOST.state; if(st.phase!=='play') return;
@@ -519,6 +599,7 @@ function hClose(){
   for(const p of Object.values(st.players)) p.last=0;
   for(const [id,d] of Object.entries(res.deltas)) if(st.players[id]){ st.players[id].money+=d; st.players[id].last=d; }
   st.result={ type:g.type, round:st.round, detail:res.detail, deltas:res.deltas };
+  if(g.type==='roulette') st.rlHist=[res.detail.n,...(st.rlHist||[])].slice(0,20);
   st.game=null; st.phase='result'; changed();
 }
 function hFinal(){ HOST.state.phase='final'; changed(); }
@@ -678,6 +759,7 @@ function updateDynamic(){
   if(S.phase==='play'){
     const g=S.game, cnt=Object.keys(g.submitted).length, sc=$('#subcount');
     if(sc) sc.textContent=`${cnt}/${g.eligible.length}명 제출`;
+    if(g.type==='roulette') document.querySelectorAll('[data-ck]').forEach(e=>{ const c=(g.stats||{})[e.dataset.ck]; e.textContent=c?c+'명':''; });
     tick();
   }
 }
@@ -698,7 +780,7 @@ function stageHTML(){
   }
   return '';
 }
-const SETTINGS=[['startMoney','시작 금액'],['rounds','라운드 수'],['timer','제한 시간(초)'],['fee','유일 숫자 참가비'],['pdStake','협력/배신 기본 판돈'],['horses','경마 출전 수 (2~20)']];
+const SETTINGS=[['startMoney','시작 금액'],['rounds','라운드 수'],['timer','제한 시간(초)'],['fee','유일 숫자 참가비'],['pdStake','협력/배신 기본 판돈'],['horses','경마 출전 수 (2~20)'],['rlTime','룰렛 베팅 시간(초)']];
 function lobbyHTML(){
   const st=S.settings;
   const botCount=Object.values(S.players).filter(p=>p.bot).length;
@@ -737,6 +819,7 @@ function describeSub(type,d){
     case 'pd': return d.c==='C'?'<b>🤝 협력</b>':'<b>🗡️ 배신</b>';
     case 'race': return `<b>${S.game.params.runners[d.h].name}</b>에 <b>${fmt(d.a)}</b>원`;
     case 'duel': return `<b>${HANDS[d.r]}</b> · <b>${fmt(d.a)}</b>원`;
+    case 'roulette': return Object.entries(d.bets).map(([k,b])=>`<b>${rlOptName(k,b.v)}</b> ${fmt(b.a)}원`).join(' · ');
   }
   return '';
 }
@@ -764,11 +847,12 @@ function inputHTML(g){
     case 'auction': return `${amtInput('입찰 금액')}<button class="btn big gold" id="submitBtn">입찰하기</button>`;
     case 'pd': return `<div class="pdgrid"><button class="btn pdbtn" data-pd="C">${stk('hugHeart','pdimg')}🤝 협력<small>함께 이득을 노린다</small></button><button class="btn pdbtn" data-pd="B">${stk('angry','pdimg')}🗡️ 배신<small>혼자 크게 먹는다</small></button></div>`;
     case 'race': return `<div class="horses">${g.params.runners.map((h,i)=>`<button class="btn horse-opt" data-grp="h" data-sel="${i}"><img src="${AVATAR_SRC[h.av]}" alt=""><span class="ho-t"><b>${i+1}번 ${esc(h.name)}</b><span class="muted">배당 <b class="odds">${h.odds}배</b> · 우승 확률 ${Math.max(1,Math.round(h.p*100))}%</span></span></button>`).join('')}</div>${amtInput('걸 금액')}<button class="btn big gold" id="submitBtn">베팅하기</button>`;
+    case 'roulette': return rlInputHTML(g);
     case 'duel': return `<div class="rpsgrid">${Object.entries(HANDS).map(([k,v])=>`<button class="btn pdbtn" data-grp="r" data-sel="${k}">${v}</button>`).join('')}</div>${amtInput('걸 금액 (0도 가능)')}<button class="btn big gold" id="submitBtn">대결!</button>`;
   }
   return '';
 }
-const HINT={ unique:'숫자를 하나 골라주세요', auction:'입찰 금액을 입력하세요 (0 이상)', race:'말을 고르고 1원 이상 걸어주세요', duel:'가위·바위·보를 고르고 금액을 입력하세요' };
+const HINT={ roulette:'걸 항목을 고르고 각각 1원 이상 입력하세요', unique:'숫자를 하나 골라주세요', auction:'입찰 금액을 입력하세요 (0 이상)', race:'말을 고르고 1원 이상 걸어주세요', duel:'가위·바위·보를 고르고 금액을 입력하세요' };
 function bindStage(){
   const st=$('#stage');
   st.onclick=e=>{
@@ -780,6 +864,8 @@ function bindStage(){
     if(t.dataset.game) return hStartRound(t.dataset.game);
     if(t.dataset.grp){ st.querySelectorAll(`[data-grp="${t.dataset.grp}"]`).forEach(b=>b.classList.toggle('active',b===t)); SEL[t.dataset.grp]=t.dataset.sel; return; }
     if(t.dataset.pd) return submit({c:t.dataset.pd});
+    if(t.dataset.rk) return rlPick(t.dataset.rk,t.dataset.rv);
+    if(t.dataset.rlx) return rlPick(t.dataset.rlx,null);
     if(t.id==='submitBtn') return submitForm();
   };
   st.onchange=e=>{ if(e.target.dataset.set&&ME.isHost) hSettings(e.target.dataset.set,e.target.value); };
@@ -787,7 +873,7 @@ function bindStage(){
 }
 function submitForm(){
   const g=S.game, a=$('#amt')?$('#amt').value:'';
-  const d={ unique:{n:SEL.n}, auction:{bid:a}, race:{h:SEL.h,a}, duel:{r:SEL.r,a} }[g.type];
+  const d={ unique:{n:SEL.n}, auction:{bid:a}, race:{h:SEL.h,a}, duel:{r:SEL.r,a}, roulette:{bets:rlSlipBets()} }[g.type];
   submit(d);
 }
 function submit(d){
@@ -807,7 +893,7 @@ function resultHTML(){
   const ds=Object.entries(r.deltas).sort((a,b)=>b[1]-a[1]);
   const deltas=ds.length?`<div class="sec">이번 라운드 손익</div><div class="deltas">${ds.map(([id,d])=>`<span class="pill">${nameOf(id)} <b class="${d>0?'up':'down'}">${signed(d)}</b></span>`).join('')}</div>`:'';
   return `<div class="ghead"><div class="gicon">${gimg(G)}</div><div><div class="gname">라운드 ${r.round} 결과 · ${G.name}</div></div></div>
-    <div id="rbody">${resultBody(r)}</div><div id="reveal" class="${(r.type==='race'||r.type==='auction')?'hidden':''}">${r.type==='race'?raceReveal(r.detail):''}${deltas}${next}</div>`;
+    <div id="rbody">${resultBody(r)}</div><div id="reveal" class="${(r.type==='race'||r.type==='auction'||r.type==='roulette')?'hidden':''}">${r.type==='race'?raceReveal(r.detail):r.type==='roulette'?rlReveal(r.detail):''}${deltas}${next}</div>`;
 }
 function resultBody(r){
   const d=r.detail;
@@ -845,6 +931,7 @@ function resultBody(r){
         ${R.map((h,i)=>`<div class="lane"><span class="hn"><b>${i+1}</b> ${esc(h.name)}</span><div class="run"><div class="runner" data-i="${i}" style="--d:${(-Math.random()*0.4).toFixed(2)}s;--sp:${(0.32+Math.random()*0.08).toFixed(2)}s"><img class="i-run" src="${AVATAR_SRC[h.av]}" alt=""><img class="i-tired" src="${AVATAR_TIRED[h.av]}" alt=""><img class="i-fever" src="${AVATAR_FEVER[h.av]}" alt=""><span class="tag"></span></div></div></div>`).join('')}
       </div><button class="btn sm ghost" id="skipRace">결과 바로 보기 ⏭</button>`;
   }
+  if(r.type==='roulette') return rlStageHTML(r.detail);
   if(r.type==='duel'){
     const face=dv=>dv>0?'excited':dv<0?'cry':'shrug';
     const side=(h,a,m)=>`${HANDS[h]} · ${fmt(a)}원${m?' <span class="muted">(미제출)</span>':''}`;
@@ -865,6 +952,8 @@ function raceReveal(d){
 function afterStage(){
   if(S.phase==='result'&&S.result.type==='race') runRace();
   if(S.phase==='result'&&S.result.type==='auction') runAuction();
+  if(S.phase==='result'&&S.result.type==='roulette') runRoulette();
+  if(S.phase==='play'&&S.game.type==='roulette'&&$('#rlslip')){ SEL.rl={}; rlRenderSlip(); }
 }
 function runAuction(){
   const key=lastKey; RACING=true; updateDynamic();
@@ -913,6 +1002,95 @@ function runRace(){
     if(sim>=endT) finish(); else requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
+}
+/* ===== 룰렛 화면 ===== */
+const rlCls=n=>({R:'r',B:'b',G:'g'})[rlColor(n)];
+function rlHistHTML(){ const h=S.rlHist||[]; return `<div class="rl-hist"><span class="muted">최근 결과</span>${h.length?h.map((n,i)=>`<span class="rl-chip ${rlCls(n)} ${i===0?'new':''}">${n}</span>`).join(''):'<span class="muted">아직 없음</span>'}</div>`; }
+function rlInputHTML(g){
+  SEL.rl=SEL.rl||{};
+  const cnt=k=>`<i class="cnt" data-ck="${k}"></i>`;
+  const nums=Array.from({length:36},(_,i)=>i+1).map(n=>`<button class="rl-n ${rlCls(n)}" data-rk="num" data-rv="${n}">${n}${cnt('num:'+n)}</button>`).join('');
+  const outs=['color','parity','hl','dozen'].map(k=>`<div class="rl-grp"><div class="rl-gl">${RL_KINDS[k].label} <span class="muted">${RL_KINDS[k].mult}배</span></div><div class="rl-go">
+     ${Object.entries(RL_KINDS[k].opts).map(([v,l])=>`<button class="btn rl-o ${k==='color'?(v==='R'?'r':'b'):''}" data-rk="${k}" data-rv="${v}">${l}${cnt(k+':'+v)}</button>`).join('')}</div></div>`).join('');
+  return `${rlHistHTML()}
+    <div class="rl-board"><button class="rl-n g zero" data-rk="num" data-rv="0">0${cnt('num:0')}</button><div class="rl-nums">${nums}</div></div>
+    <div class="muted rl-tip">숫자 하나 적중 시 <b>36배</b> · 항목마다 하나씩 고를 수 있어요 (다시 누르면 취소) · 모두 베팅을 확정하면 시간이 남아도 바로 돌아가요</div>
+    <div class="rl-outs">${outs}</div>
+    <div class="sec">🧾 내 베팅</div><div class="rl-slip" id="rlslip"></div>
+    <button class="btn big gold" id="submitBtn">베팅 확정</button>`;
+}
+function rlSyncAmounts(){ document.querySelectorAll('[data-amt]').forEach(i=>{ const k=i.dataset.amt; if(SEL.rl&&SEL.rl[k]) SEL.rl[k].a=i.value; }); }
+function rlPick(k,v){
+  rlSyncAmounts(); SEL.rl=SEL.rl||{};
+  if(v===null||(SEL.rl[k]&&SEL.rl[k].v===v)) delete SEL.rl[k]; else SEL.rl[k]={ v, a:SEL.rl[k]?SEL.rl[k].a:'' };
+  rlRenderSlip();
+}
+function rlRenderSlip(){
+  document.querySelectorAll('[data-rk]').forEach(b=>b.classList.toggle('active',!!(SEL.rl[b.dataset.rk]&&SEL.rl[b.dataset.rk].v===b.dataset.rv)));
+  const el=$('#rlslip'); if(!el) return;
+  const ks=Object.keys(RL_KINDS).filter(k=>SEL.rl[k]);
+  el.innerHTML=ks.length?ks.map(k=>`<div class="rl-row"><span class="rl-rl"><b>${rlOptName(k,SEL.rl[k].v)}</b> <span class="muted">${RL_KINDS[k].mult}배</span></span>
+      <input type="number" min="1" inputmode="numeric" data-amt="${k}" placeholder="금액" value="${esc(SEL.rl[k].a||'')}"><button class="btn sm" data-rlx="${k}">✕</button></div>`).join('')
+    :'<div class="muted">위에서 걸 항목을 골라주세요. (색·홀짝·낮음/높음·구간·숫자 중 원하는 만큼)</div>';
+}
+function rlSlipBets(){ rlSyncAmounts(); const o={}; for(const [k,b] of Object.entries(SEL.rl||{})) o[k]={v:b.v,a:b.a}; return o; }
+function rlWheelSVG(){
+  const st=360/37, P=[];
+  const pt=(r,a)=>[(r*Math.sin(a*Math.PI/180)).toFixed(2),(-r*Math.cos(a*Math.PI/180)).toFixed(2)];
+  RL_ORDER.forEach((n,i)=>{ const a0=i*st-st/2, a1=a0+st, c={R:'#c8283a',B:'#1b1d24',G:'#14894a'}[rlColor(n)];
+    const [x0,y0]=pt(140,a0),[x1,y1]=pt(140,a1),[x2,y2]=pt(96,a1),[x3,y3]=pt(96,a0);
+    const [tx,ty]=pt(126,i*st);
+    P.push(`<path d="M${x0} ${y0}A140 140 0 0 1 ${x1} ${y1}L${x2} ${y2}A96 96 0 0 0 ${x3} ${y3}Z" fill="${c}" stroke="#d9b45a" stroke-width="1" data-p="${n}"/>`);
+    P.push(`<text x="${tx}" y="${ty}" transform="rotate(${(i*st).toFixed(2)} ${tx} ${ty})" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="800" fill="#fff">${n}</text>`); });
+  return `<svg viewBox="-160 -160 320 320" class="rl-wheel"><circle r="156" fill="#5a3a1c" stroke="#d9b45a" stroke-width="4"/>
+    <g id="rlw">${P.join('')}<circle r="114" fill="none" stroke="#d9b45a" stroke-width="1.2" opacity=".7"/><circle r="96" fill="#3b2612" stroke="#d9b45a" stroke-width="2"/>
+    <circle r="70" fill="#2a1a0c"/>${[0,90,180,270].map(a=>`<rect x="-4" y="-66" width="8" height="58" rx="4" fill="#d9b45a" transform="rotate(${a})"/>`).join('')}<circle r="14" fill="#f5c542"/></g>
+    <circle id="rlball" r="7" fill="#fff" stroke="#999" stroke-width="1"/></svg>`;
+}
+function rlStageHTML(d){
+  return `<div class="rl-stage"><div class="rl-pointer">▼</div>${rlWheelSVG()}<div class="rl-center" id="rlcenter"></div></div>
+    <div class="evcap" id="rlcap">룰렛이 돌아가는 중…</div><button class="btn sm ghost" id="skipRl">결과 바로 보기 ⏭</button>`;
+}
+function rlReveal(d){
+  const n=d.n, c=rlColor(n);
+  const tags=n===0?['0 (모든 일반 베팅 실패)']:[c==='R'?'빨강':'검정', n%2?'홀':'짝', n<=18?'낮음':'높음', Math.ceil(n/12)+'구간 ('+['1~12','13~24','25~36'][Math.ceil(n/12)-1]+')'];
+  const winners=d.rows.filter(x=>x.d>0);
+  const party=winners.length?`<div class="rl-party">${winners.slice(0,8).map(x=>`<div class="rl-w"><img class="rl-wav" src="${PLAYER_AV[avIdx(x.id)]}" alt=""><div>${nameOf(x.id)}</div><b class="up">${signed(x.d)}</b></div>`).join('')}</div>`
+    :`${stk(n===0?'shock':'cryPuddle')}<div class="muted">이번엔 이득 본 사람이 없어요!</div>`;
+  // 참여 현황
+  const cnt={}; d.rows.forEach(x=>x.items.forEach(it=>{ const k=it.k+':'+it.v; cnt[k]=(cnt[k]||0)+1; }));
+  const heat=`<div class="rl-heat">${[0,...Array.from({length:36},(_,i)=>i+1)].map(m=>`<span class="hc ${rlCls(m)} ${m===n?'hit':''}" title="${m}">${m}<i>${cnt['num:'+m]||''}</i></span>`).join('')}</div>
+    <div class="deltas">${['color','parity','hl','dozen'].flatMap(k=>Object.keys(RL_KINDS[k].opts).map(v=>`<span class="pill ${RL_KINDS[k].win(n,v)?'hitp':''}">${RL_KINDS[k].opts[v]} <b>${cnt[k+':'+v]||0}명</b></span>`)).join('')}</div>`;
+  return `<div class="announce rl-ann">${winners.length?stk('sparkle','rx bounce'):''}공이 멈춘 숫자는<big><span class="rl-big ${rlCls(n)}">${n}</span></big><div class="deltas" style="justify-content:center">${tags.map(t=>`<span class="pill">${t}</span>`).join('')}</div></div>
+    ${party}
+    ${d.rows.length?`<div class="sec">베팅 내역</div><div class="list">${d.rows.map(x=>`<div class="li ${x.d>0?'win':''}"><span>${nameOf(x.id)} · ${x.items.map(it=>`<span class="${it.win?'up':'muted'}">${rlOptName(it.k,it.v)} ${fmt(it.a)}${it.win?' ✔':''}</span>`).join(' · ')}</span><b class="${x.d>0?'up':'down'}">${signed(x.d)}</b></div>`).join('')}</div>`:'<p class="muted">아무도 베팅하지 않았어요.</p>'}
+    <div class="sec">숫자별 참여 현황</div>${heat}
+    ${rlHistHTML()}`;
+}
+function runRoulette(){
+  const d=S.result.detail, key=lastKey, rnd=mulberry32(d.seed);
+  const D=5+rnd()*3, idx=RL_ORDER.indexOf(d.n), stp=360/37;
+  const w0=rnd()*360; let wEnd=-idx*stp; while(wEnd<w0+360*(2+rnd()*1.5)) wEnd+=360; // 당첨 칸이 맨 위(▼) 아래에서 멈춤
+  const target=wEnd+idx*stp; const bEnd=target-360*Math.ceil((target+1500)/360);
+  const wheel=$('#rlw'), ball=$('#rlball'); let t0=null, done=false; RACING=true; updateDynamic();
+  const ease=t=>1-Math.pow(1-t,3), easeB=t=>1-Math.pow(1-t,4);
+  const place=(wa,ba,r)=>{ wheel.setAttribute('transform',`rotate(${wa.toFixed(2)})`);
+    ball.setAttribute('cx',(r*Math.sin(ba*Math.PI/180)).toFixed(2)); ball.setAttribute('cy',(-r*Math.cos(ba*Math.PI/180)).toFixed(2)); };
+  const finish=()=>{ if(done) return; done=true; RACING=false; place(wEnd,target,105);
+    const p=document.querySelector(`#rlw [data-p="${d.n}"]`); if(p){ p.setAttribute('stroke','#fff'); p.setAttribute('stroke-width','3'); }
+    const c=$('#rlcenter'); if(c){ c.innerHTML=`<span class="rl-big ${rlCls(d.n)}">${d.n}</span>`; c.classList.add('show'); }
+    const cap=$('#rlcap'); if(cap) cap.textContent=''; const sk=$('#skipRl'); if(sk) sk.remove();
+    const r=$('#reveal'); if(r) r.classList.remove('hidden'); updateDynamic(); };
+  $('#skipRl').onclick=finish;
+  function frame(now){
+    if(done||lastKey!==key||!document.body.contains(wheel)) return;
+    if(t0===null) t0=now; const t=Math.min(1,(now-t0)/1000/D);
+    const r=t<0.62?140:t<0.86?140-(t-0.62)/0.24*30+Math.sin(t*90)*3*(1-t):105+Math.sin(t*60)*2*(1-t)*4;
+    place(w0+(wEnd-w0)*ease(t), bEnd*easeB(t), Math.max(103,Math.min(140,r)));
+    if(t>0.8){ const cap=$('#rlcap'); if(cap&&cap.textContent.indexOf('두근')<0) cap.textContent='공이 멈추려고 해요… 두근두근'; }
+    if(t>=1) finish(); else requestAnimationFrame(frame);
+  }
+  place(w0,0,140); requestAnimationFrame(frame);
 }
 function finalHTML(){
   const ids=Object.keys(S.players).sort((a,b)=>S.players[b].money-S.players[a].money);
