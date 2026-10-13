@@ -260,6 +260,31 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .du-pair.draw .du-mid::before{content:'무승부';font-weight:900;color:var(--muted)}
 @keyframes punch{0%{transform:none}40%{transform:translateX(var(--px,24px)) scale(1.12)}100%{transform:none}}
 .du-s.r{--px:-24px}
+/* dice */
+.dc-pick{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.dc-btn{position:relative;display:flex;flex-direction:column;align-items:center;padding:22px 8px}
+.dc-btn .dc-big{font-size:34px;font-weight:900}
+.dc-btn small{color:var(--muted);font-size:12px;margin-top:4px}
+.dc-btn.odd{background:#3a1a22}.dc-btn.even{background:#162a44}
+.dc-chip{display:inline-grid;place-items:center;min-width:26px;height:26px;border-radius:7px;font-weight:800;font-size:13px;color:#fff}
+.dc-chip.odd,.oe.odd{background:#c8283a}.dc-chip.even,.oe.even{background:#2d6fd6}
+.dc-chip.new{outline:2px solid var(--gold)}
+.oe{display:inline-block;padding:1px 9px;border-radius:7px;color:#fff;font-weight:900}
+.dc-table{position:relative;height:260px;margin-top:10px;border-radius:120px/90px;background:radial-gradient(ellipse at center,#1f7a43 0%,#155c31 70%,#0f4424 100%);border:10px solid #5a3a1c;box-shadow:inset 0 0 40px rgba(0,0,0,.5),0 10px 24px rgba(0,0,0,.4);overflow:hidden}
+.die{display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);width:84px;height:84px;padding:11px;background:linear-gradient(145deg,#fff,#ece6d8);border-radius:16px;box-shadow:inset 0 -6px 0 #d2c9b4,0 8px 14px rgba(0,0,0,.45)}
+.die i{display:block}
+.die .pip{width:15px;height:15px;border-radius:50%;background:#1d1d24;place-self:center;box-shadow:inset 0 2px 2px rgba(0,0,0,.5)}
+.die .pip.red{width:20px;height:20px;background:#d62e3d}
+.dc-table .die{position:absolute;left:50%;top:50%}
+.die.landed{animation:landing .35s ease-out}
+@keyframes landing{0%{filter:brightness(1.5)}100%{filter:none}}
+.dc-sum{position:absolute;left:50%;bottom:14px;transform:translateX(-50%) scale(.6);opacity:0;display:flex;gap:8px;align-items:center;font-size:20px;transition:all .35s cubic-bezier(.3,1.6,.5,1)}
+.dc-sum.show{opacity:1;transform:translateX(-50%) scale(1)}
+.dc-total{display:inline-grid;place-items:center;min-width:52px;height:52px;padding:0 8px;border-radius:12px;background:#111a;color:#fff;font-size:30px;font-weight:900;border:3px solid var(--gold)}
+.dc-mini{display:flex;align-items:center;justify-content:center;gap:8px;margin:8px 0 10px;font-size:24px}
+.die.sm{width:52px;height:52px;padding:7px;border-radius:11px}
+.die.sm .pip{width:9px;height:9px}.die.sm .pip.red{width:12px;height:12px}
+.dc-ann .oe{font-size:26px;padding:2px 14px}
 /* roulette */
 .rl-hist{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:6px 0 10px;font-size:13px}
 .rl-hist .muted{margin-right:4px}
@@ -357,6 +382,7 @@ const GAMES = {
   race:    { name:'경마 베팅', icon:'🏇', stk:'flyCape', desc:'우승할 말 한 마리에 원하는 만큼 거세요. 맞히면 배당만큼 돌려받고, 틀리면 건 돈을 잃어요.' },
   duel:    { name:'1:1 대결', icon:'⚔️', stk:'boxRed', desc:'랜덤으로 짝을 지어 가위바위보! 각자 금액을 쓰면 둘 중 더 큰 금액이 판돈이 되고, 이긴 사람이 진 사람에게서 판돈만큼 가져갑니다.' }
   ,roulette:{ name:'룰렛', icon:'🎡', stk:'excited', desc:'유럽식 룰렛(0~36). 색·홀짝·낮음/높음·구간·숫자에 걸어 결과를 맞혀요. 항목마다 하나씩, 여러 항목에 동시에 걸 수 있어요. 0이 나오면 숫자 0 외에는 모두 실패!' }
+  ,dice:{ name:'주사위 홀짝', icon:'🎲', stk:'proud', desc:'주사위 2개를 굴려 합이 홀수일지 짝수일지 맞혀요. 맞히면 건 금액의 2배(원금 포함)를 받아요. 홀·짝 확률은 각각 50%!' }
 };
 // 경주 캐릭터 20종 (이미지 순서와 같음)
 const AVATAR_NAMES=['햄찌','레드','블루','그린','옐로','리본','신사','셰프','공룡','천사','마법사','탐정','기사','스포츠','시크','딸기','꿀벌','마도로스','털모자','임금님'];
@@ -449,6 +475,7 @@ function validate(type,d,params){
     case 'pd': return (d.c==='C'||d.c==='B')?{c:d.c}:null;
     case 'race': { const h=Math.floor(Number(d.h)), a=toAmt(d.a); return (h>=0&&h<RN&&a!==null&&a>0)?{h,a}:null; }
     case 'duel': { const a=toAmt(d.a); return (HANDS[d.r]&&a!==null)?{r:d.r,a}:null; }
+    case 'dice': { const a=toAmt(d.a); return ((d.c==='O'||d.c==='E')&&a!==null&&a>0)?{c:d.c,a}:null; }
     case 'roulette': {
       if(!d.bets||typeof d.bets!=='object') return null;
       const out={};
@@ -522,6 +549,11 @@ function resolve(type,params,subs){
     });
     return { deltas, detail:{ rows } };
   }
+  if(type==='dice'){
+    const d1=1+Math.floor(Math.random()*6), d2=1+Math.floor(Math.random()*6), sum=d1+d2, res=sum%2?'O':'E';
+    const rows=Object.entries(subs).map(([id,s])=>{ const win=s.c===res, dv=win?s.a:-s.a; add(id,dv); return { id, c:s.c, a:s.a, win, d:dv }; }).sort((x,y)=>y.d-x.d);
+    return { deltas, detail:{ d1, d2, sum, res, rows, seed:Math.floor(Math.random()*2147483647) } };
+  }
   if(type==='roulette'){
     const n=Math.floor(Math.random()*37);
     const rows=Object.entries(subs).map(([id,s])=>{
@@ -537,7 +569,7 @@ function resolve(type,params,subs){
 function betTotal(type,d){
   if(!d) return 0;
   if(type==='auction') return d.bid||0;
-  if(type==='race'||type==='duel') return d.a||0;
+  if(type==='race'||type==='duel'||type==='dice') return d.a||0;
   if(type==='roulette') return Object.values(d.bets||{}).reduce((t,b)=>t+(Number(b.a)||0),0);
   return 0;
 }
@@ -545,7 +577,7 @@ function betTotal(type,d){
 function clampMove(type,mv,money){
   if(!mv) return mv; money=Math.max(0,Math.floor(money));
   if(type==='auction') mv.bid=Math.min(mv.bid,money);
-  if(type==='race') mv.a=Math.max(1,Math.min(mv.a,money));
+  if(type==='race'||type==='dice') mv.a=Math.max(1,Math.min(mv.a,money));
   if(type==='duel') mv.a=Math.min(mv.a,money);
   if(type==='roulette'){ const tot=betTotal(type,mv);
     if(tot>money){ const f=money/tot; for(const k of Object.keys(mv.bets)){ mv.bets[k].a=Math.floor(mv.bets[k].a*f); if(mv.bets[k].a<=0) delete mv.bets[k]; }
@@ -567,6 +599,7 @@ function botMove(type,money,params){
         bets[k]={ v, a:botAmount(money,k==='num'?0.02:0.06,k==='num'?0.08:0.22,100) }; }
       return { bets };
     }
+    case 'dice': return { c: Math.random()<0.5?'O':'E', a: botAmount(money,0.08,0.4,100) };
     case 'duel': return { r: randHand(), a: Math.random()<0.15?0:botAmount(money,0.05,0.35,100) };
   }
   return null;
@@ -593,7 +626,7 @@ let clockOffset=0, mySub={round:-1,data:null}, lastKey='', SEL={}, kicked=false,
 /* ================= 방장(호스트) ================= */
 function newState(code,title,hostPid,hostName){
   return { code, title, hostId:hostPid, phase:'lobby', round:0,
-    settings:{ startMoney:10000, rounds:5, timer:40, fee:1000, pdStake:2000, horses:6, rlTime:60 },
+    settings:{ startMoney:10000, rounds:5, timer:40, fee:1000, pdStake:2000, horses:6, rlTime:60, diceTime:20 },
     players:{ [hostPid]:{ name:hostName, money:10000, online:true, last:0, av:Math.floor(Math.random()*PLAYER_AV.length) } },
     game:null, result:null };
 }
@@ -646,7 +679,7 @@ function hSettings(k,v){
   const st=HOST.state; if(st.phase!=='lobby') return;
   if(k==='title'){ st.title=String(v).trim().slice(0,30)||'머니 서바이벌'; return changed(); }
   if(k==='bots'){ setBots(Math.min(9,Math.max(1,Math.floor(Number(v))||1))); return changed(); }
-  const lim={ startMoney:[100,1e12], rounds:[1,30], timer:[10,300], fee:[0,1e12], pdStake:[0,1e12], horses:[2,AVATAR_NAMES.length], rlTime:[5,300] }[k];
+  const lim={ startMoney:[100,1e12], rounds:[1,30], timer:[10,300], fee:[0,1e12], pdStake:[0,1e12], horses:[2,AVATAR_NAMES.length], rlTime:[5,300], diceTime:[5,300] }[k];
   if(!lim) return;
   let n=Math.floor(Number(v)); if(!Number.isFinite(n)) return changed();
   n=Math.min(lim[1],Math.max(lim[0],n)); st.settings[k]=n; changed();
@@ -663,9 +696,9 @@ function hStartRound(type){
   if(type==='duel') params.pairs=makePairs(online);
   if(type==='race') params.runners=makeRunners(st.settings.horses||6);
   st.round+=1;
-  const secs=type==='roulette'?(st.settings.rlTime||60):st.settings.timer;
+  const secs=type==='roulette'?(st.settings.rlTime||60):type==='dice'?(st.settings.diceTime||20):st.settings.timer;
   st.game={ type, params, eligible:online, submitted:{}, deadline:Date.now()+secs*1000 };
-  if(type==='roulette') st.game.stats={};
+  if(type==='roulette'||type==='dice') st.game.stats={};
   st.result=null; HOST.subs={}; st.phase='play'; changed();
   scheduleBots();
 }
@@ -704,6 +737,7 @@ function hSubmit(pid,data){
   const clean=validate(g.type,data,g.params); if(!clean) return;
   if(betTotal(g.type,clean)>Math.max(0,st.players[pid].money)) return; // 보유금보다 많이 걸 수 없음
   HOST.subs[pid]={...clean,ts:Date.now()}; g.submitted[pid]=true;
+  if(g.type==='dice') g.stats[clean.c]=(g.stats[clean.c]||0)+1;
   if(g.type==='roulette') for(const [k,b] of Object.entries(clean.bets)){ const key=k+':'+b.v; g.stats[key]=(g.stats[key]||0)+1; } changed(); checkAllIn();
 }
 function checkAllIn(){
@@ -723,6 +757,7 @@ function hClose(){
     if(k) loans[id]=k*unit; }
   st.result={ type:g.type, round:st.round, detail:res.detail, deltas:res.deltas, loans };
   if(g.type==='roulette') st.rlHist=[res.detail.n,...(st.rlHist||[])].slice(0,20);
+  if(g.type==='dice') st.diceHist=[[res.detail.d1,res.detail.d2],...(st.diceHist||[])].slice(0,20);
   st.game=null; st.phase='result'; changed();
 }
 function hFinal(){ HOST.state.phase='final'; changed(); }
@@ -883,7 +918,7 @@ function updateDynamic(){
   if(S.phase==='play'){
     const g=S.game, cnt=Object.keys(g.submitted).length, sc=$('#subcount');
     if(sc) sc.textContent=`${cnt}/${g.eligible.length}명 제출`;
-    if(g.type==='roulette') document.querySelectorAll('[data-ck]').forEach(e=>{ const c=(g.stats||{})[e.dataset.ck]; e.textContent=c?c+'명':''; });
+    if(g.type==='roulette'||g.type==='dice') document.querySelectorAll('[data-ck]').forEach(e=>{ const c=(g.stats||{})[e.dataset.ck]; e.textContent=c?c+'명':''; });
     tick();
   }
 }
@@ -904,7 +939,7 @@ function stageHTML(){
   }
   return '';
 }
-const SETTINGS=[['startMoney','시작 금액'],['rounds','라운드 수'],['timer','제한 시간(초)'],['fee','유일 숫자 참가비'],['pdStake','협력/배신 기본 판돈'],['horses','경마 출전 수 (2~20)'],['rlTime','룰렛 베팅 시간(초)']];
+const SETTINGS=[['startMoney','시작 금액'],['rounds','라운드 수'],['timer','제한 시간(초)'],['fee','유일 숫자 참가비'],['pdStake','협력/배신 기본 판돈'],['horses','경마 출전 수 (2~20)'],['rlTime','룰렛 베팅 시간(초)'],['diceTime','주사위 홀짝 선택 시간(초)']];
 function lobbyHTML(){
   const st=S.settings;
   const botCount=Object.values(S.players).filter(p=>p.bot).length;
@@ -943,6 +978,7 @@ function describeSub(type,d){
     case 'pd': return d.c==='C'?'<b>🤝 협력</b>':'<b>🗡️ 배신</b>';
     case 'race': return `<b>${S.game.params.runners[d.h].name}</b>에 <b>${fmt(d.a)}</b>원`;
     case 'duel': return `<b>${HANDS[d.r]}</b> · <b>${fmt(d.a)}</b>원`;
+    case 'dice': return `<b>${d.c==='O'?'홀':'짝'}</b>에 <b>${fmt(d.a)}</b>원`;
     case 'roulette': return Object.entries(d.bets).map(([k,b])=>`<b>${rlOptName(k,b.v)}</b> ${fmt(b.a)}원`).join(' · ');
   }
   return '';
@@ -972,12 +1008,16 @@ function inputHTML(g){
     case 'auction': return `${amtInput('입찰 금액')}<button class="btn big gold" id="submitBtn">입찰하기</button>`;
     case 'pd': return `<div class="pdgrid"><button class="btn pdbtn" data-pd="C">${stk('hugHeart','pdimg')}🤝 협력<small>함께 이득을 노린다</small></button><button class="btn pdbtn" data-pd="B">${stk('angry','pdimg')}🗡️ 배신<small>혼자 크게 먹는다</small></button></div>`;
     case 'race': return `<div class="horses">${g.params.runners.map((h,i)=>`<button class="btn horse-opt" data-grp="h" data-sel="${i}"><img src="${AVATAR_SRC[h.av]}" alt=""><span class="ho-t"><b>${i+1}번 ${esc(h.name)}</b><span class="muted">배당 <b class="odds">${h.odds}배</b> · 우승 확률 ${Math.max(1,Math.round(h.p*100))}%</span></span></button>`).join('')}</div>${amtInput('걸 금액')}<button class="btn big gold" id="submitBtn">베팅하기</button>`;
+    case 'dice': return `${diceHistHTML()}<div class="dc-pick">
+        <button class="btn dc-btn odd" data-grp="c" data-sel="O"><span class="dc-big">홀</span><small>3·5·7·9·11</small><i class="cnt" data-ck="O"></i></button>
+        <button class="btn dc-btn even" data-grp="c" data-sel="E"><span class="dc-big">짝</span><small>2·4·6·8·10·12</small><i class="cnt" data-ck="E"></i></button></div>
+        <div class="muted rl-tip">확률은 홀·짝 각각 50% · 맞히면 건 금액의 <b>2배</b>를 받아요</div>${amtInput('걸 금액')}<button class="btn big gold" id="submitBtn">베팅하기</button>`;
     case 'roulette': return rlInputHTML(g);
     case 'duel': return `<div class="rpsgrid">${Object.entries(HANDS).map(([k,v])=>`<button class="btn pdbtn" data-grp="r" data-sel="${k}">${v}</button>`).join('')}</div>${amtInput('걸 금액 (0도 가능)')}<button class="btn big gold" id="submitBtn">대결!</button>`;
   }
   return '';
 }
-const HINT={ roulette:'걸 항목을 고르고 각각 1원 이상 입력하세요', unique:'숫자를 하나 골라주세요', auction:'입찰 금액을 입력하세요 (0 이상)', race:'말을 고르고 1원 이상 걸어주세요', duel:'가위·바위·보를 고르고 금액을 입력하세요' };
+const HINT={ dice:'홀 또는 짝을 고르고 1원 이상 걸어주세요', roulette:'걸 항목을 고르고 각각 1원 이상 입력하세요', unique:'숫자를 하나 골라주세요', auction:'입찰 금액을 입력하세요 (0 이상)', race:'말을 고르고 1원 이상 걸어주세요', duel:'가위·바위·보를 고르고 금액을 입력하세요' };
 function bindStage(){
   const st=$('#stage');
   st.onclick=e=>{
@@ -999,7 +1039,7 @@ function bindStage(){
 }
 function submitForm(){
   const g=S.game, a=$('#amt')?$('#amt').value:'';
-  const d={ unique:{n:SEL.n}, auction:{bid:a}, race:{h:SEL.h,a}, duel:{r:SEL.r,a}, roulette:{bets:rlSlipBets()} }[g.type];
+  const d={ unique:{n:SEL.n}, auction:{bid:a}, race:{h:SEL.h,a}, duel:{r:SEL.r,a}, roulette:{bets:rlSlipBets()}, dice:{c:SEL.c,a} }[g.type];
   submit(d);
 }
 function submit(d){
@@ -1023,7 +1063,7 @@ function resultHTML(){
   const ln=Object.entries(r.loans||{});
   const loanHTML=ln.length?`<div class="loanbox">${stk('cryPuddle','mstk')}<div><b>💳 파산!</b> 보유금을 모두 잃어 빚을 졌어요<div class="deltas">${ln.map(([id,a])=>`<span class="pill">${nameOf(id)} <b class="down">빚 +${fmt(a)}</b></span>`).join('')}</div></div></div>`:'';
   return `<div class="ghead"><div class="gicon">${gimg(G)}</div><div><div class="gname">라운드 ${r.round} 결과 · ${G.name}</div></div></div>
-    <div id="rbody">${resultBody(r)}</div><div id="reveal" class="hidden">${r.type==='race'?raceReveal(r.detail):r.type==='roulette'?rlReveal(r.detail):`<div class="sec">📋 결과 요약</div>${resultBodyOld(r)}`}${loanHTML}${deltas}${next}</div>`;
+    <div id="rbody">${resultBody(r)}</div><div id="reveal" class="hidden">${r.type==='race'?raceReveal(r.detail):r.type==='roulette'?rlReveal(r.detail):r.type==='dice'?diceReveal(r.detail):`<div class="sec">📋 결과 요약</div>${resultBodyOld(r)}`}${loanHTML}${deltas}${next}</div>`;
 }
 const SHOW_TYPES=['unique','auction','pd','duel'];
 function resultBody(r){ return SHOW_TYPES.includes(r.type)?showStage(r):resultBodyOld(r); }
@@ -1063,6 +1103,7 @@ function resultBodyOld(r){
       </div><button class="btn sm ghost" id="skipRace">결과 바로 보기 ⏭</button>`;
   }
   if(r.type==='roulette') return rlStageHTML(r.detail);
+  if(r.type==='dice') return diceStageHTML(r.detail);
   if(r.type==='duel'){
     const face=dv=>dv>0?'excited':dv<0?'cry':'shrug';
     const side=(h,a,m)=>`${HANDS[h]} · ${fmt(a)}원${m?' <span class="muted">(미제출)</span>':''}`;
@@ -1084,6 +1125,7 @@ function afterStage(){
   if(S.phase==='result'&&S.result.type==='race') runRace();
   if(S.phase==='result'&&SHOW_TYPES.includes(S.result.type)) runShow(S.result);
   if(S.phase==='result'&&S.result.type==='roulette') runRoulette();
+  if(S.phase==='result'&&S.result.type==='dice') runDice();
   if(S.phase==='play'&&S.game.type==='roulette'&&$('#rlslip')){ SEL.rl={}; rlRenderSlip(); }
 }
 /* ===== 결과 연출 (유일 숫자 / 경매 / 협력·배신 / 대결) ===== */
@@ -1271,6 +1313,53 @@ function runRace(){
   }
   requestAnimationFrame(frame);
 }
+/* ===== 주사위 홀짝 화면 ===== */
+const PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+const dieFace=n=>Array.from({length:9},(_,i)=>`<i class="${PIPS[n].includes(i)?'pip'+(n===1?' red':''):''}"></i>`).join('');
+const dieHTML=(n,cls,id)=>`<div class="die ${cls||''}" ${id?`id="${id}"`:''}>${dieFace(n)}</div>`;
+const oeTag=r=>`<span class="oe ${r==='O'?'odd':'even'}">${r==='O'?'홀':'짝'}</span>`;
+function diceHistHTML(){ const h=S.diceHist||[]; return `<div class="rl-hist"><span class="muted">최근 결과</span>${h.length?h.map(([a,b],i)=>`<span class="dc-chip ${(a+b)%2?'odd':'even'} ${i===0?'new':''}" title="${a}+${b}">${a+b}</span>`).join(''):'<span class="muted">아직 없음</span>'}</div>`; }
+function diceStageHTML(d){
+  return `<div class="dc-table" id="dctable"><div class="dc-felt"></div>${dieHTML(1,'roll','die1')}${dieHTML(1,'roll','die2')}<div class="dc-sum" id="dcsum"></div></div>
+    <div class="evcap" id="dccap">🎲 주사위를 굴립니다…</div><button class="btn sm ghost" id="skipDice">결과 바로 보기 ⏭</button>`;
+}
+function diceReveal(d){
+  const winners=d.rows.filter(x=>x.win), cnt={O:0,E:0}, amt={O:0,E:0}; d.rows.forEach(x=>{ cnt[x.c]++; amt[x.c]+=x.a; });
+  const party=winners.length?`<div class="rl-party">${winners.slice(0,8).map(x=>`<div class="rl-w"><img class="rl-wav" src="${PLAYER_AV[avIdx(x.id)]}" alt=""><div>${nameOf(x.id)}</div><b class="up">${signed(x.d)}</b></div>`).join('')}</div>`
+    :`${stk('cryPuddle')}<div class="muted" style="text-align:center">이번엔 맞힌 사람이 없어요!</div>`;
+  return `<div class="announce dc-ann">${winners.length?stk('sparkle','rx bounce'):''}<div class="dc-mini">${dieHTML(d.d1,'sm')}<b>+</b>${dieHTML(d.d2,'sm')}<b>=</b><span class="dc-total">${d.sum}</span></div>결과는 ${oeTag(d.res)}!</div>
+    ${party}
+    <div class="deltas" style="justify-content:center">${['O','E'].map(c=>`<span class="pill ${c===d.res?'hitp':''}">${c==='O'?'홀':'짝'} <b>${cnt[c]}명</b> · ${fmt(amt[c])}원</span>`).join('')}</div>
+    ${d.rows.length?`<div class="sec">베팅 내역</div><div class="list">${d.rows.map(x=>`<div class="li ${x.win?'win':''}"><span>${nameOf(x.id)} · ${oeTag(x.c)} ${fmt(x.a)}원${x.win?' ✔':''}</span><b class="${x.d>0?'up':'down'}">${signed(x.d)}</b></div>`).join('')}</div>`:'<p class="muted">아무도 베팅하지 않았어요.</p>'}
+    ${diceHistHTML()}`;
+}
+function runDice(){
+  const d=S.result.detail, key=lastKey, rnd=mulberry32(d.seed);
+  const D=3+rnd()*2, els=[$('#die1'),$('#die2')], fin=[d.d1,d.d2], table=$('#dctable');
+  const P=[{x0:-160,y0:-70,x1:-58,y1:6,r:640+rnd()*360},{x0:-120,y0:80,x1:58,y1:-4,r:-(700+rnd()*360)}];
+  let t0=null, done=false, nextFace=0; RACING=true; updateDynamic();
+  const place=(el,p,k)=>{ const e=1-Math.pow(1-k,3), x=p.x0+(p.x1-p.x0)*e, y=p.y0+(p.y1-p.y0)*e-Math.abs(Math.sin(k*Math.PI*3.2))*(1-k)*70, rot=p.r*(1-e), sc=1+(1-k)*0.25;
+    el.style.transform=`translate(calc(-50% + ${x.toFixed(1)}px),calc(-50% + ${y.toFixed(1)}px)) rotate(${rot.toFixed(1)}deg) scale(${sc.toFixed(3)})`; };
+  const finish=()=>{ if(done) return; done=true; RACING=false;
+    els.forEach((el,i)=>{ el.innerHTML=dieFace(fin[i]); place(el,P[i],1); el.classList.remove('roll'); el.classList.add('landed'); });
+    const sm=$('#dcsum'); if(sm){ sm.innerHTML=`<span class="dc-total">${d.sum}</span>${oeTag(d.res)}`; sm.classList.add('show'); }
+    burst(table,d.res==='O'?['🔴','✨']:['🔵','✨'],12);
+    const cap=$('#dccap'); if(cap) cap.innerHTML=`${d.d1} + ${d.d2} = <b>${d.sum}</b> → <b>${d.res==='O'?'홀':'짝'}</b>!`;
+    const sk=$('#skipDice'); if(sk) sk.remove();
+    setTimeout(()=>{ if(lastKey!==key) return; const r=$('#reveal'); if(r) r.classList.remove('hidden'); updateDynamic(); },900); };
+  $('#skipDice').onclick=finish;
+  function frame(now){
+    if(done||lastKey!==key||!document.body.contains(table)) return;
+    if(t0===null) t0=now; const tt=(now-t0)/1000, k=Math.min(1,tt/D);
+    els.forEach((el,i)=>place(el,P[i],k));
+    if(tt>=nextFace&&k<0.9){ els.forEach(el=>el.innerHTML=dieFace(1+Math.floor(rnd()*6))); nextFace=tt+0.06+k*k*0.35; }
+    if(k>=0.9) els.forEach((el,i)=>{ if(!el.dataset.f){ el.dataset.f=1; el.innerHTML=dieFace(fin[i]); } });
+    if(k>0.6){ const cap=$('#dccap'); if(cap&&cap.textContent.indexOf('멈')<0) cap.textContent='🎲 데굴데굴… 멈추려고 해요!'; }
+    if(k>=1) finish(); else requestAnimationFrame(frame);
+  }
+  els.forEach((el,i)=>place(el,P[i],0)); requestAnimationFrame(frame);
+}
+
 /* ===== 룰렛 화면 ===== */
 const rlCls=n=>({R:'rc-r',B:'rc-b',G:'rc-g'})[rlColor(n)];
 function rlHistHTML(){ const h=S.rlHist||[]; return `<div class="rl-hist"><span class="muted">최근 결과</span>${h.length?h.map((n,i)=>`<span class="rl-chip ${rlCls(n)} ${i===0?'new':''}">${n}</span>`).join(''):'<span class="muted">아직 없음</span>'}</div>`; }
