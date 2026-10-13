@@ -167,6 +167,13 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#000c;color:#fff;padding:10px 16px;border-radius:10px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.show{opacity:1}
 .center{text-align:center;padding:40px 16px}
+/* debt */
+.mn small.debt{display:block;font-size:11px;font-weight:700;color:var(--red);line-height:1.1}
+.amtrow{display:flex;gap:8px}.amtrow input{flex:1}
+.rl-total{font-size:13px;color:var(--muted);text-align:right;margin-top:2px}
+.loanbox{display:flex;align-items:center;gap:10px;margin:12px 0;padding:10px 14px;background:#2a1418;border:1px solid #6b2c36;border-radius:12px}
+.calc{display:block;font-size:11px;color:var(--muted);font-weight:500}
+.li .fr{display:flex;align-items:center;gap:10px;text-align:right}
 /* shows */
 .showcap{min-height:30px;margin:10px 0;font-size:18px;font-weight:800;text-align:center}
 .showcap.pop{animation:capPop .35s ease-out}
@@ -507,6 +514,25 @@ function resolve(type,params,subs){
   return { deltas, detail:{} };
 }
 
+// 한 번의 제출에서 거는 총액 (고정 참가비 게임은 0)
+function betTotal(type,d){
+  if(!d) return 0;
+  if(type==='auction') return d.bid||0;
+  if(type==='race'||type==='duel') return d.a||0;
+  if(type==='roulette') return Object.values(d.bets||{}).reduce((t,b)=>t+(Number(b.a)||0),0);
+  return 0;
+}
+// 컴퓨터 베팅이 보유금을 넘지 않게 줄이기
+function clampMove(type,mv,money){
+  if(!mv) return mv; money=Math.max(0,Math.floor(money));
+  if(type==='auction') mv.bid=Math.min(mv.bid,money);
+  if(type==='race') mv.a=Math.max(1,Math.min(mv.a,money));
+  if(type==='duel') mv.a=Math.min(mv.a,money);
+  if(type==='roulette'){ const tot=betTotal(type,mv);
+    if(tot>money){ const f=money/tot; for(const k of Object.keys(mv.bets)){ mv.bets[k].a=Math.floor(mv.bets[k].a*f); if(mv.bets[k].a<=0) delete mv.bets[k]; }
+      if(!Object.keys(mv.bets).length) mv.bets={color:{v:'R',a:Math.max(1,money)}}; } }
+  return mv;
+}
 // 컴퓨터(봇)의 선택
 const BOT_NAMES=['🤖 알파','🤖 베타','🤖 감마','🤖 델타','🤖 오메가','🤖 타짜','🤖 쫄보','🤖 올인','🤖 계산기'];
 function botAmount(money,lo,hi,step){ const base=Math.max(money,3000); return Math.max(step,Math.round(base*(lo+Math.random()*(hi-lo))/step)*step); }
@@ -601,12 +627,12 @@ function hSettings(k,v){
   const st=HOST.state; if(st.phase!=='lobby') return;
   if(k==='title'){ st.title=String(v).trim().slice(0,30)||'머니 서바이벌'; return changed(); }
   if(k==='bots'){ setBots(Math.min(9,Math.max(1,Math.floor(Number(v))||1))); return changed(); }
-  const lim={ startMoney:[0,1e12], rounds:[1,30], timer:[10,300], fee:[0,1e12], pdStake:[0,1e12], horses:[2,AVATAR_NAMES.length], rlTime:[5,300] }[k];
+  const lim={ startMoney:[100,1e12], rounds:[1,30], timer:[10,300], fee:[0,1e12], pdStake:[0,1e12], horses:[2,AVATAR_NAMES.length], rlTime:[5,300] }[k];
   if(!lim) return;
   let n=Math.floor(Number(v)); if(!Number.isFinite(n)) return changed();
   n=Math.min(lim[1],Math.max(lim[0],n)); st.settings[k]=n; changed();
 }
-function resetMoney(){ const st=HOST.state; for(const p of Object.values(st.players)){ p.money=st.settings.startMoney; p.last=0; } }
+function resetMoney(){ const st=HOST.state; for(const p of Object.values(st.players)){ p.money=st.settings.startMoney; p.debt=0; p.last=0; p.prev=null; } }
 function hStartGame(){ const st=HOST.state; resetMoney(); st.round=0; st.result=null; st.game=null; st.phase='pick'; changed(); }
 function hStartRound(type){
   const st=HOST.state; if(st.phase!=='pick'&&st.phase!=='result') return;
@@ -640,7 +666,7 @@ function scheduleBots(){
   g.eligible.filter(id=>st.players[id]&&st.players[id].bot).forEach(id=>{
     setTimeout(()=>{
       if(HOST.state.round!==round||HOST.state.phase!=='play'||!st.players[id]) return;
-      hSubmit(id,botMove(g.type,st.players[id].money,g.params));
+      hSubmit(id,clampMove(g.type,botMove(g.type,st.players[id].money,g.params),st.players[id].money));
     },1500+Math.random()*Math.max(0,maxWait-1500));
   });
 }
@@ -657,6 +683,7 @@ function hSubmit(pid,data){
   const st=HOST.state; if(st.phase!=='play') return;
   const g=st.game; if(!g.eligible.includes(pid)||g.submitted[pid]) return;
   const clean=validate(g.type,data,g.params); if(!clean) return;
+  if(betTotal(g.type,clean)>Math.max(0,st.players[pid].money)) return; // 보유금보다 많이 걸 수 없음
   HOST.subs[pid]={...clean,ts:Date.now()}; g.submitted[pid]=true;
   if(g.type==='roulette') for(const [k,b] of Object.entries(clean.bets)){ const key=k+':'+b.v; g.stats[key]=(g.stats[key]||0)+1; } changed(); checkAllIn();
 }
@@ -668,9 +695,14 @@ function checkAllIn(){
 function hClose(){
   const st=HOST.state; if(st.phase!=='play') return;
   const g=st.game, res=resolve(g.type,g.params,HOST.subs);
-  for(const p of Object.values(st.players)) p.last=0;
-  for(const [id,d] of Object.entries(res.deltas)) if(st.players[id]){ st.players[id].money+=d; st.players[id].last=d; }
-  st.result={ type:g.type, round:st.round, detail:res.detail, deltas:res.deltas };
+  for(const p of Object.values(st.players)){ p.last=0; p.prev={ m:p.money, d:p.debt||0 }; }
+  const loans={}, unit=st.settings.startMoney;
+  for(const [id,d] of Object.entries(res.deltas)){ const p=st.players[id]; if(!p) continue;
+    p.money+=d; p.last=d;
+    // 보유금을 모두 잃으면 시작 금액만큼 빚을 지고 계속 진행
+    let k=0; while(p.money<=0&&unit>0&&k<1000){ p.money+=unit; p.debt=(p.debt||0)+unit; k++; }
+    if(k) loans[id]=k*unit; }
+  st.result={ type:g.type, round:st.round, detail:res.detail, deltas:res.deltas, loans };
   if(g.type==='roulette') st.rlHist=[res.detail.n,...(st.rlHist||[])].slice(0,20);
   st.game=null; st.phase='result'; changed();
 }
@@ -819,14 +851,15 @@ function updateDynamic(){
   $('#hMeta').textContent=`${PHASE[S.phase]} · 라운드 ${Math.min(S.round,S.settings.rounds)}/${S.settings.rounds} · ${n}명`;
   $('#hCode').textContent=S.code;
   // 경주 중에는 결과가 미리 보이지 않도록 경주 전 금액으로 표시
-  const shown=id=>RACING?S.players[id].money-(S.players[id].last||0):S.players[id].money;
-  const ids=Object.keys(S.players).sort((a,b)=>shown(b)-shown(a));
-  $('#board').innerHTML=ids.map((id,i)=>{ const p={...S.players[id],money:shown(id),last:RACING?0:S.players[id].last};
+  const cur=id=>{ const p=S.players[id]; return RACING&&p.prev?{m:p.prev.m,d:p.prev.d}:{m:p.money,d:p.debt||0}; };
+  const net=id=>{ const c=cur(id); return c.m-c.d; };
+  const ids=Object.keys(S.players).sort((a,b)=>net(b)-net(a)||cur(b).m-cur(a).m);
+  $('#board').innerHTML=ids.map((id,i)=>{ const c=cur(id), p={...S.players[id],money:c.m,debt:c.d,last:RACING?0:S.players[id].last};
     const sub=S.phase==='play'&&S.game.submitted[id];
     return `<div class="row ${id===ME.pid?'me':''} ${p.online?'':'off'}">
       <span class="rk">${i+1}</span>
       <span class="nm">${avImg(id)}${id===S.hostId?'🎙️ ':''}${esc(p.name)}${sub?' <span class="ok">✔</span>':''}${ME.isHost&&!S.single&&id!==S.hostId?` <button class="kick" data-kick="${id}" title="내보내기">✕</button>`:''}</span>
-      <span class="mn ${p.money<0?'neg':''}">${fmt(p.money)}</span>
+      <span class="mn">${fmt(p.money)}${p.debt?`<small class="debt">빚 ${fmt(p.debt)}</small>`:''}</span>
       <span class="dl ${p.last>0?'up':'down'}">${p.last?signed(p.last):''}</span></div>`; }).join('');
   if(S.phase==='play'){
     const g=S.game, cnt=Object.keys(g.submitted).length, sc=$('#subcount');
@@ -864,7 +897,7 @@ function lobbyHTML(){
     : `<div class="sview">${SETTINGS.map(([k,l])=>`<span class="pill">${l}: <b>${fmt(st[k])}</b></span>`).join('')}</div>`;
   return `<div class="hero">${stk('wave','heroimg')}<h2>대기실</h2></div>
     <p class="muted">${S.single?'싱글 모드: 컴퓨터 상대들과 겨뤄요. 설정을 확인하고 게임을 시작하세요.':ME.isHost?'오른쪽 위의 <b>참여 링크 복사</b>를 눌러 시청자에게 알려주세요.':'곧 게임이 시작돼요!'}</p>
-    <div class="howto">모두 <b>${fmt(st.startMoney)}원</b>으로 시작해 <b>${st.rounds}라운드</b>의 미니게임을 진행합니다. 돈이 0원 아래로 내려가도 마이너스로 계속 참여할 수 있고, 베팅 상한은 없어요. 마지막에 <b>가장 돈이 많은 사람이 우승!</b><br><span class="muted">※ 게임머니는 게임 안에서만 쓰이는 가상의 돈이에요.</span></div>
+    <div class="howto">모두 <b>${fmt(st.startMoney)}원</b>으로 시작해 <b>${st.rounds}라운드</b>의 미니게임을 진행합니다. 베팅은 <b>보유금까지만</b> 걸 수 있어요. 보유금을 모두 잃으면 <b>시작 금액만큼 빚</b>을 지고 계속 참여해요. 마지막에 <b>보유금 − 빚</b>이 가장 많은 사람이 우승!<br><span class="muted">※ 게임머니는 게임 안에서만 쓰이는 가상의 돈이에요.</span></div>
     <div class="games">${Object.values(GAMES).map(g=>`<div class="gchip">${gimg(g,'chipimg')}<b>${g.name}</b>${g.desc}</div>`).join('')}</div>
     ${settings}
     ${ME.isHost?`<button class="btn big gold" id="startBtn">🎲 게임 시작</button>`:`<div class="wait">스트리머가 게임을 시작하길 기다리는 중…</div>`}`;
@@ -912,7 +945,8 @@ function playHTML(){
     ${body}
     ${ME.isHost?`<button class="btn ghost" id="closeBtn">⏹ 지금 마감하기</button>`:''}`;
 }
-const amtInput=(ph)=>`<label>금액 (상한 없음 · 보유금보다 많이 걸면 마이너스가 될 수 있어요)</label><input type="number" id="amt" min="0" inputmode="numeric" placeholder="${ph}">`;
+const myMoney=()=>S.players[ME.pid]?S.players[ME.pid].money:0;
+const amtInput=(ph)=>`<label>금액 (내 보유금 <b>${fmt(myMoney())}원</b>까지 걸 수 있어요)</label><div class="amtrow"><input type="number" id="amt" min="0" max="${myMoney()}" inputmode="numeric" placeholder="${ph}"><button class="btn sm" data-allin="1">올인</button></div>`;
 function inputHTML(g){
   switch(g.type){
     case 'unique': return `<div class="numgrid">${Array.from({length:50},(_,i)=>`<button class="btn" data-grp="n" data-sel="${i+1}">${i+1}</button>`).join('')}</div><button class="btn big gold" id="submitBtn">제출</button>`;
@@ -936,6 +970,7 @@ function bindStage(){
     if(t.dataset.game) return hStartRound(t.dataset.game);
     if(t.dataset.grp){ st.querySelectorAll(`[data-grp="${t.dataset.grp}"]`).forEach(b=>b.classList.toggle('active',b===t)); SEL[t.dataset.grp]=t.dataset.sel; return; }
     if(t.dataset.pd) return submit({c:t.dataset.pd});
+    if(t.dataset.allin){ const a=$('#amt'); if(a) a.value=myMoney(); return; }
     if(t.dataset.rk) return rlPick(t.dataset.rk,t.dataset.rv);
     if(t.dataset.rlx) return rlPick(t.dataset.rlx,null);
     if(t.id==='submitBtn') return submitForm();
@@ -952,6 +987,8 @@ function submit(d){
   if(!S||S.phase!=='play') return;
   const g=S.game, clean=validate(g.type,d,g.params);
   if(!clean) return toast(HINT[g.type]||'입력을 확인해 주세요');
+  const have=S.players[ME.pid]?S.players[ME.pid].money:0;
+  if(betTotal(g.type,clean)>have) return toast(`보유금(${fmt(have)}원)보다 많이 걸 수 없어요${g.type==='roulette'?' · 베팅 합계를 줄여주세요':''}`);
   mySub={round:S.round,data:clean};
   if(ME.isHost) hSubmit(ME.pid,clean);
   else { if(CL&&CL.conn&&CL.conn.open) CL.conn.send({t:'act',round:S.round,data:clean}); else { mySub={round:-1,data:null}; return toast('연결이 끊겨 제출하지 못했어요'); } render(); }
@@ -964,8 +1001,10 @@ function resultHTML(){
     : `<div class="wait">${last?'곧 최종 결과가 공개됩니다…':'스트리머가 다음 미니게임을 고르는 중…'}</div>`;
   const ds=Object.entries(r.deltas).sort((a,b)=>b[1]-a[1]);
   const deltas=ds.length?`<div class="sec">이번 라운드 손익</div><div class="deltas">${ds.map(([id,d])=>`<span class="pill">${nameOf(id)} <b class="${d>0?'up':'down'}">${signed(d)}</b></span>`).join('')}</div>`:'';
+  const ln=Object.entries(r.loans||{});
+  const loanHTML=ln.length?`<div class="loanbox">${stk('cryPuddle','mstk')}<div><b>💳 파산!</b> 보유금을 모두 잃어 빚을 졌어요<div class="deltas">${ln.map(([id,a])=>`<span class="pill">${nameOf(id)} <b class="down">빚 +${fmt(a)}</b></span>`).join('')}</div></div></div>`:'';
   return `<div class="ghead"><div class="gicon">${gimg(G)}</div><div><div class="gname">라운드 ${r.round} 결과 · ${G.name}</div></div></div>
-    <div id="rbody">${resultBody(r)}</div><div id="reveal" class="hidden">${r.type==='race'?raceReveal(r.detail):r.type==='roulette'?rlReveal(r.detail):`<div class="sec">📋 결과 요약</div>${resultBodyOld(r)}`}${deltas}${next}</div>`;
+    <div id="rbody">${resultBody(r)}</div><div id="reveal" class="hidden">${r.type==='race'?raceReveal(r.detail):r.type==='roulette'?rlReveal(r.detail):`<div class="sec">📋 결과 요약</div>${resultBodyOld(r)}`}${loanHTML}${deltas}${next}</div>`;
 }
 const SHOW_TYPES=['unique','auction','pd','duel'];
 function resultBody(r){ return SHOW_TYPES.includes(r.type)?showStage(r):resultBodyOld(r); }
@@ -1207,6 +1246,8 @@ function rlInputHTML(g){
     <div class="sec">🧾 내 베팅</div><div class="rl-slip" id="rlslip"></div>
     <button class="btn big gold" id="submitBtn">베팅 확정</button>`;
 }
+function rlTotal(){ const e=$('#rltotal'); if(!e) return; let t=0; document.querySelectorAll('[data-amt]').forEach(i=>t+=Math.max(0,Math.floor(Number(i.value)||0)));
+  const have=myMoney(); e.innerHTML=`베팅 합계 <b class="${t>have?'down':''}">${fmt(t)}원</b> / 보유금 ${fmt(have)}원${t>have?' · <b class="down">보유금을 넘었어요!</b>':''}`; }
 function rlSyncAmounts(){ document.querySelectorAll('[data-amt]').forEach(i=>{ const k=i.dataset.amt; if(SEL.rl&&SEL.rl[k]) SEL.rl[k].a=i.value; }); }
 function rlPick(k,v){
   rlSyncAmounts(); SEL.rl=SEL.rl||{};
@@ -1220,6 +1261,8 @@ function rlRenderSlip(){
   el.innerHTML=ks.length?ks.map(k=>`<div class="rl-row"><span class="rl-rl"><b>${rlOptName(k,SEL.rl[k].v)}</b> <span class="muted">${RL_KINDS[k].mult}배</span></span>
       <input type="number" min="1" inputmode="numeric" data-amt="${k}" placeholder="금액" value="${esc(SEL.rl[k].a||'')}"><button class="btn sm" data-rlx="${k}">✕</button></div>`).join('')
     :'<div class="muted">위에서 걸 항목을 골라주세요. (색·홀짝·낮음/높음·구간·숫자 중 원하는 만큼)</div>';
+  el.innerHTML+=`<div class="rl-total" id="rltotal"></div>`; rlTotal();
+  el.querySelectorAll('[data-amt]').forEach(i=>i.oninput=rlTotal);
 }
 function rlSlipBets(){ rlSyncAmounts(); const o={}; for(const [k,b] of Object.entries(SEL.rl||{})) o[k]={v:b.v,a:b.a}; return o; }
 function rlWheelSVG(){
@@ -1281,14 +1324,17 @@ function runRoulette(){
   place(w0,0,140); requestAnimationFrame(frame);
 }
 function finalHTML(){
-  const ids=Object.keys(S.players).sort((a,b)=>S.players[b].money-S.players[a].money);
-  const pod=(i,cls,medal)=>ids[i]?`<div class="pod ${cls}"><div class="medal">${medal}</div><img class="podav" src="${PLAYER_AV[avIdx(ids[i])]}" alt=""><div class="pn">${esc(S.players[ids[i]].name)}</div><div class="pm ${S.players[ids[i]].money<0?'neg':''}">${fmt(S.players[ids[i]].money)}원</div></div>`:'<div></div>';
+  const P=id=>S.players[id], debt=id=>P(id).debt||0, net=id=>P(id).money-debt(id);
+  const ids=Object.keys(S.players).sort((a,b)=>net(b)-net(a)||P(b).money-P(a).money);
+  const calc=id=>debt(id)?`<span class="calc">보유 ${fmt(P(id).money)} − 빚 ${fmt(debt(id))}</span>`:'';
+  const pod=(i,cls,medal)=>ids[i]?`<div class="pod ${cls}"><div class="medal">${medal}</div><img class="podav" src="${PLAYER_AV[avIdx(ids[i])]}" alt=""><div class="pn">${esc(P(ids[i]).name)}</div><div class="pm ${net(ids[i])<0?'neg':''}">${fmt(net(ids[i]))}원</div>${calc(ids[i])}</div>`:'<div></div>';
   const lastId=ids.length>=3?ids[ids.length-1]:null;
   return `<div class="hero">${stk('lightstick','heroimg')}<h2>🏆 최종 결과</h2>${stk('pompom','heroimg')}</div>
-    ${ids[0]?`<div class="announce final-ann">${stk('sparkle','rx bounce')}우승<big>${nameOf(ids[0])}</big>${fmt(S.players[ids[0]].money)}원</div>`:''}
+    ${ids[0]?`<div class="announce final-ann">${stk('sparkle','rx bounce')}우승<big>${nameOf(ids[0])}</big>${fmt(net(ids[0]))}원${debt(ids[0])?`<div class="calc">보유 ${fmt(P(ids[0]).money)} − 빚 ${fmt(debt(ids[0]))}</div>`:''}</div>`:''}
     <div class="podium">${pod(1,'p2','🥈')}${pod(0,'p1','🥇')}${pod(2,'p3','🥉')}</div>
-    ${lastId?`<div class="lastp">${stk('cryPuddle','mstk')}<div>꼴찌는 <b>${nameOf(lastId)}</b> 님 (${fmt(S.players[lastId].money)}원)<br><span class="muted">다음 판엔 꼭 역전해요!</span></div></div>`:''}
-    <div class="list">${ids.map((id,i)=>`<div class="li ${id===ME.pid?'win':''}"><span>${i+1}위 · ${nameOf(id)}</span><b class="${S.players[id].money<0?'neg':''}">${fmt(S.players[id].money)}원</b></div>`).join('')}</div>
+    ${lastId?`<div class="lastp">${stk('cryPuddle','mstk')}<div>꼴찌는 <b>${nameOf(lastId)}</b> 님 (${fmt(net(lastId))}원${debt(lastId)?` · 빚 ${fmt(debt(lastId))}`:''})<br><span class="muted">다음 판엔 꼭 역전해요!</span></div></div>`:''}
+    <div class="list">${ids.map((id,i)=>`<div class="li ${id===ME.pid?'win':''}"><span>${i+1}위 · ${nameOf(id)}</span><span class="fr">${calc(id)}<b class="${net(id)<0?'neg':''}">${fmt(net(id))}원</b></span></div>`).join('')}</div>
+    <div class="muted" style="font-size:12px;margin-top:6px">최종 금액 = 보유금 − 빚</div>
     ${ME.isHost?`<button class="btn big gold" id="resetBtn">🔁 ${S.single?'다시 하기':'같은 멤버로 새 게임'}</button>`:''}`;
 }
 
