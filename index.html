@@ -136,7 +136,7 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .runner .i-tired,.runner .i-fever{display:none}
 .runner.m-tired .i-run,.runner.m-fever .i-run{display:none}
 .runner.m-tired .i-tired{display:block;height:90%;animation:pant .5s ease-in-out infinite}
-.runner.m-fever .i-fever{display:block;height:112%;bottom:-4%;right:-6%;animation:zoom .14s linear infinite;filter:drop-shadow(0 0 6px rgba(255,214,90,.9)) drop-shadow(0 3px 2px rgba(0,0,0,.35))}
+.runner.m-fever .i-fever{display:block;height:112%;bottom:-4%;right:-6%;animation:zoom var(--fz,.1s) linear infinite;filter:drop-shadow(0 0 6px rgba(255,214,90,.9)) drop-shadow(0 3px 2px rgba(0,0,0,.35))}
 .runner.m-fever{z-index:4}
 .track.ready .runner img,.runner.fin img,.track.over .runner img{animation-play-state:paused}
 .runner.winner .i-run{animation:cheer .6s ease-in-out infinite}
@@ -145,7 +145,7 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .m-tired .tag{display:block;background:#33405e;color:#cfe0ff}
 .m-tired .tag::after{content:'💦 헉헉…'}
 .m-fever .tag{display:block;background:linear-gradient(90deg,#ff5a3c,#ffb62e);color:#fff;animation:pop .3s ease-in-out infinite alternate}
-.m-fever .tag::after{content:'🔥 FEVER!'}
+.m-fever .tag::after{content:'🔥 FEVER ' attr(data-fr)}
 @keyframes pant{0%,100%{transform:scale(1,1)}50%{transform:scale(1.03,.95) translateY(2%)}}
 @keyframes zoom{0%{transform:translate(0,0)}25%{transform:translate(1px,-2px)}50%{transform:translate(-1px,0)}75%{transform:translate(1px,-1px)}100%{transform:translate(0,0)}}
 @keyframes pop{from{transform:scale(1)}to{transform:scale(1.12)}}
@@ -187,6 +187,18 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .lotto.done .lt-card:not(.on){opacity:.35;filter:grayscale(1)}
 .lotto.done .lt-card.on{animation:cheer .7s ease-in-out infinite}
 .lotto.done .lt-card.on::after{content:'당첨!';position:absolute;right:-8px;top:-12px;background:#d62e3d;color:#fff;font-weight:900;font-size:12px;padding:2px 8px;border-radius:6px;transform:rotate(12deg)}
+/* race: my bet */
+.rc-my{display:flex;align-items:center;gap:10px;margin-top:8px;padding:8px 12px;border-radius:12px;background:#3a3110cc;border:1px solid var(--gold);font-size:15px}
+.rc-my img{width:56px;height:40px;object-fit:contain}
+.rc-my.none{background:var(--card2);border-color:var(--line);color:var(--muted);justify-content:center}
+.rc-pos{font-size:13px;margin-top:2px}.rc-pos.p1{color:var(--gold)}.rc-pos.p4{color:var(--muted)}
+.lane.mine{background:rgba(245,197,66,.18)!important;box-shadow:inset 0 0 0 2px rgba(245,197,66,.8)}
+.lane.mine .hn{color:var(--gold)}
+.lv.mine{outline:2px solid var(--gold)}
+/* hide-money mode */
+label.chk{display:flex;align-items:flex-start;gap:8px;margin:10px 0 4px;padding:10px 12px;border-radius:10px;background:var(--card2);color:var(--text);font-size:14px;cursor:pointer}
+label.chk input{width:18px;height:18px;margin-top:2px;accent-color:var(--gold)}
+.mn.hid{color:var(--muted);font-size:14px}
 /* debt */
 .mn small.debt{display:block;font-size:11px;font-weight:700;color:var(--red);line-height:1.1}
 .amtrow{display:flex;gap:8px}.amtrow input{flex:1}
@@ -467,6 +479,14 @@ button.lball.active{outline:3px solid var(--gold);outline-offset:2px;transform:s
 .sh-slot.static{cursor:default}
 .sh-slot i{display:block;font-style:normal;font-size:11px;color:var(--gold)}
 @media(max-width:520px){.sh-ham,.sh-ham img{width:92px}.sh-ham img{height:82px}.sh-slot{width:84px}.sh-seed{top:56px}}
+/* dice 3D */
+.d3t{perspective:900px;overflow:hidden}
+.d3w{position:absolute;left:50%;top:0;width:76px;height:76px;margin-left:-38px;margin-top:-38px;z-index:2;will-change:transform}
+.d3c{position:relative;width:100%;height:100%;transform-style:preserve-3d;--h:38px}
+.d3f{position:absolute;inset:0;width:76px!important;height:76px!important;padding:10px!important;backface-visibility:hidden;border-radius:14px!important;box-shadow:inset 0 0 0 2px #e7dfcb,inset 0 -5px 8px rgba(0,0,0,.12)!important}
+.d3s{position:absolute;left:50%;top:0;width:80px;height:22px;margin-left:-40px;margin-top:-11px;border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,.55),transparent 70%);z-index:1;pointer-events:none}
+
+.d3s.glow{background:radial-gradient(ellipse,rgba(255,215,90,.85),rgba(255,200,60,.25) 55%,transparent 72%);opacity:1!important;width:120px;margin-left:-60px;height:34px;margin-top:-17px}
 /* dice */
 .dc-pick{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .dc-btn{position:relative;display:flex;flex-direction:column;align-items:center;padding:22px 8px}
@@ -654,41 +674,40 @@ function pickRunner(R){ let r=Math.random(); for(let i=0;i<R.length;i++){ r-=R[i
 // 같은 seed면 모든 화면에서 똑같은 경주 장면이 나옴
 function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 function raceScript(order,seed,T){
-  T=T||9; const rnd=mulberry32(seed), K=7, plans=new Array(order.length); let f=T;
+  T=T||16; const rnd=mulberry32(seed), K=9, plans=new Array(order.length); let f=T;
   order.forEach((ri,rank)=>{
-    if(rank>0) f+=0.15+rnd()*0.35;
+    if(rank>0) f+=(0.25+rnd()*0.45)*Math.min(1,8/order.length);
     const pts=[0];
-    for(let k=1;k<K;k++){ const base=k/K, amp=0.14*Math.sin(Math.PI*base); let v=base+(rnd()*2-1)*amp; v=Math.max(v,pts[k-1]+0.03); pts.push(Math.min(v,0.97)); }
+    for(let k=1;k<K;k++){ const base=k/K, amp=0.15*Math.sin(Math.PI*base); let v=base+(rnd()*2-1)*amp; v=Math.max(v,pts[k-1]+0.025); pts.push(Math.min(v,0.97)); }
     pts.push(1);
-    // 돌발 상황: 지쳐서 멈춤(tired) / 피버 타임(fever). 레이스 12~78% 구간에서만 발생
-    const ev=[];
-    if(rnd()<0.45) ev.push({ m:'tired', d:0.8+rnd()*0.7 });
-    if(rnd()<0.45) ev.push({ m:'fever', d:0.6+rnd()*0.5 });
-    if(ev.length===2&&rnd()<0.5) ev.reverse();
-    const w0=f*0.12, slot=(f*0.78-w0)/Math.max(1,ev.length);
-    ev.forEach((e,k)=>{ e.d=Math.min(e.d,slot*0.8); e.t0=w0+k*slot+rnd()*(slot-e.d); });
-    // 이벤트가 있어도 결승 도착 시간(f)은 그대로 → 정해진 순위가 바뀌지 않음
-    const Dt=ev.filter(e=>e.m==='tired').reduce((a,e)=>a+e.d,0), Df=ev.filter(e=>e.m==='fever').reduce((a,e)=>a+e.d,0);
-    const s=(f-FEVER_RATE*Df)/(f-Dt-Df);
+    // 돌발 상황: 말마다 0~4번 무작위 발동. 지침 = 멈춤, 피버 = 매번 속도(1.6~3.4배)·지속시간(0.5~1.8초) 무작위
+    const cnt=[0,1,1,2,2,2,3,3,4][Math.floor(rnd()*9)], ev=[];
+    for(let k=0;k<cnt;k++) ev.push(rnd()<0.5?{ m:'tired', d:0.6+rnd()*1.1 }:{ m:'fever', r:Math.round((1.6+rnd()*1.8)*10)/10, d:0.5+rnd()*1.3 });
+    const w0=f*0.1, slot=(f*0.8-w0)/Math.max(1,ev.length);
+    ev.forEach((e,k)=>{ e.d=Math.min(e.d,slot*0.75); e.t0=w0+k*slot+rnd()*(slot-e.d); });
+    // 결승 도착 시간(f)은 그대로 → 평소 속도(s)로 보정. 보정이 너무 크면 마지막 이벤트를 빼서 자연스럽게 유지
+    const calc=()=>{ const Dt=ev.filter(e=>e.m==='tired').reduce((a,e)=>a+e.d,0), Fv=ev.filter(e=>e.m==='fever'), Df=Fv.reduce((a,e)=>a+e.d,0), Fr=Fv.reduce((a,e)=>a+e.r*e.d,0);
+      return (f-Fr)/(f-Dt-Df); };
+    let s=calc(); while(ev.length&&(s<0.45||s>1.8)){ ev.pop(); s=calc(); }
     plans[ri]={ f, pts, ev, s };
   });
   return plans;
 }
-const FEVER_RATE=2.4;
-// 실제 시간 → '달린 만큼의 시간' (지침=0배속, 피버=2.4배속, 평소=s배속)
+// 실제 시간 → '달린 만큼의 시간' (지침=0배속, 피버=이벤트마다 r배속, 평소=s배속)
 function raceWarp(plan,t){
   if(!plan.ev) return t;
   let g=0, last=0;
   for(const e of plan.ev){
     if(t<=e.t0) return g+plan.s*(t-last);
     g+=plan.s*(e.t0-last);
-    const rate=e.m==='fever'?FEVER_RATE:0;
+    const rate=e.m==='fever'?e.r:0;
     if(t<=e.t0+e.d) return g+rate*(t-e.t0);
     g+=rate*e.d; last=e.t0+e.d;
   }
   return g+plan.s*(t-last);
 }
-function raceMode(plan,t){ if(plan.ev) for(const e of plan.ev) if(t>=e.t0&&t<e.t0+e.d) return e.m; return 'run'; }
+function raceEv(plan,t){ if(plan.ev) for(const e of plan.ev) if(t>=e.t0&&t<e.t0+e.d) return e; return null; }
+function raceMode(plan,t){ const e=raceEv(plan,t); return e?e.m:'run'; }
 function raceX(plan,t){ if(t<=0) return 0; if(t>=plan.f) return 1; const tt=Math.min(plan.f,raceWarp(plan,t)); const K=plan.pts.length-1, u=Math.min(K-1e-9,tt/plan.f*K), k=Math.floor(u), fr=u-k; return Math.min(plan.pts[k]+(plan.pts[k+1]-plan.pts[k])*fr, 0.9999); }
 function randHand(){ return ['R','P','S'][Math.floor(Math.random()*3)]; }
 function toAmt(v){ if(v===''||v===null||v===undefined) return null; const n=Math.floor(Number(v)); return Number.isFinite(n)&&n>=0&&n<=1e15?n:null; }
@@ -937,7 +956,7 @@ let clockOffset=0, mySub={round:-1,data:null}, lastKey='', SEL={}, kicked=false,
 /* ================= 방장(호스트) ================= */
 function newState(code,title,hostPid,hostName){
   return { code, title, hostId:hostPid, phase:'lobby', round:0,
-    settings:{ startMoney:10000, rounds:10, timer:40, fee:1000, pdStake:2000, horses:10, rlTime:60, stakePct:10, diceTime:20, shellTime:8, lottoTime:30, plinkoTime:20, mineFee:1000, mineTurn:10, bombMin:8, bombMax:20, chestTime:20 },
+    settings:{ startMoney:10000, rounds:10, timer:40, fee:1000, pdStake:2000, horses:10, rlTime:60, stakePct:10, diceTime:20, shellTime:8, lottoTime:30, plinkoTime:20, mineFee:1000, mineTurn:10, bombMin:8, bombMax:20, chestTime:20, hideMoney:false },
     bg:pickRoomBg(),
     players:{ [hostPid]:{ name:hostName, money:10000, online:true, last:0, av:Math.floor(Math.random()*PLAYER_AV.length) } },
     game:null, result:null };
@@ -990,6 +1009,7 @@ function onConnClose(conn){
 function hSettings(k,v){
   const st=HOST.state; if(st.phase!=='lobby') return;
   if(k==='title'){ st.title=String(v).trim().slice(0,30)||'머니 서바이벌'; return changed(); }
+  if(k==='hideMoney'){ st.settings.hideMoney=!!v; return changed(); }
   if(k==='bots'){ setBots(Math.min(9,Math.max(1,Math.floor(Number(v))||1))); return changed(); }
   const lim={ startMoney:[100,1e12], rounds:[1,30], timer:[10,300], fee:[0,1e12], pdStake:[0,1e12], horses:[2,AVATAR_NAMES.length], rlTime:[5,300], diceTime:[5,300], shellTime:[3,60], lottoTime:[5,300], plinkoTime:[5,300], stakePct:[1,100], mineFee:[0,1e12], mineTurn:[3,60], bombMin:[3,60], bombMax:[3,90], chestTime:[5,300] }[k];
   if(!lim) return;
@@ -1375,13 +1395,15 @@ function updateDynamic(){
   const cur=id=>{ const p=S.players[id]; return RACING&&p.prev?{m:p.prev.m,d:p.prev.d}:{m:p.money,d:p.debt||0}; };
   const net=id=>{ const c=cur(id); return c.m-c.d; };
   const ids=Object.keys(S.players).sort((a,b)=>net(b)-net(a)||cur(b).m-cur(a).m);
+  const HIDE=S.settings.hideMoney&&S.phase!=='final';
   $('#board').innerHTML=ids.map((id,i)=>{ const c=cur(id), p={...S.players[id],money:c.m,debt:c.d,last:RACING?0:S.players[id].last};
     const sub=S.phase==='play'&&S.game.submitted[id];
     return `<div class="row ${id===ME.pid?'me':''} ${p.online?'':'off'}">
       <span class="rk">${i+1}</span>
       <span class="nm">${avImg(id)}${id===S.hostId?'🎙️ ':''}${esc(p.name)}${sub?' <span class="ok">✔</span>':''}${ME.isHost&&!S.single&&id!==S.hostId?` <button class="kick" data-kick="${id}" title="내보내기">✕</button>`:''}</span>
-      <span class="mn">${fmt(p.money)}${p.debt?`<small class="debt">빚 ${fmt(p.debt)}</small>`:''}</span>
-      <span class="dl ${p.last>0?'up':'down'}">${p.last?signed(p.last):''}</span></div>`; }).join('');
+      ${HIDE?`<span class="mn hid">🔒</span><span class="dl"></span>`:`<span class="mn">${fmt(p.money)}${p.debt?`<small class="debt">빚 ${fmt(p.debt)}</small>`:''}</span>
+      <span class="dl ${p.last>0?'up':'down'}">${p.last?signed(p.last):''}</span>`}</div>`; }).join('');
+  const bh=$('.board h3'); if(bh) bh.innerHTML=HIDE?'💸 순위 <span class="muted" style="font-size:12px;font-weight:500">🙈 금액 비공개</span>':'💸 순위';
   if(S.phase==='play'){
     const g=S.game, cnt=Object.keys(g.submitted).length, sc=$('#subcount');
     if(sc) sc.textContent=(g.type==='mines'||g.type==='bomb')?`생존 ${g.alive.length}/${g.order.length}명`:`${cnt}/${g.eligible.length}명 제출`;
@@ -1424,8 +1446,9 @@ function lobbyHTML(){
     ? `<div class="sec">⚙️ 설정</div>${S.single
         ?`<label>컴퓨터 상대 수 (1~9)</label><input type="number" data-set="bots" min="1" max="9" value="${botCount}">`
         :`<label>방 제목</label><input type="text" data-set="title" maxlength="30" value="${esc(S.title)}">`}
+       <label class="chk"><input type="checkbox" data-set="hideMoney" ${st.hideMoney?'checked':''}><span>🙈 <b>순위만 공개 모드</b> — 점수판에 순위만 보여주고 보유금·빚은 숨겨요 (최종 결과에서 공개)</span></label>
        <div class="settings">${SETTINGS.map(([k,l])=>`<div><label>${l}</label><input type="number" data-set="${k}" value="${st[k]}" min="0"></div>`).join('')}</div>`
-    : `<div class="sview">${SETTINGS.map(([k,l])=>`<span class="pill">${l}: <b>${fmt(st[k])}</b></span>`).join('')}</div>`;
+    : `<div class="sview">${st.hideMoney?'<span class="pill">🙈 <b>순위만 공개 모드</b></span>':''}${SETTINGS.map(([k,l])=>`<span class="pill">${l}: <b>${fmt(st[k])}</b></span>`).join('')}</div>`;
   return `<div class="hero">${stk('wave','heroimg')}<h2>대기실</h2></div>
     <p class="muted">${S.single?'싱글 모드: 컴퓨터 상대들과 겨뤄요. 설정을 확인하고 게임을 시작하세요.':ME.isHost?'오른쪽 위의 <b>참여 링크 복사</b>를 눌러 시청자에게 알려주세요.':'곧 게임이 시작돼요!'}</p>
     <div class="howto">모두 <b>${fmt(st.startMoney)}원</b>으로 시작해 <b>${st.rounds}라운드</b>의 미니게임을 진행합니다. 베팅은 <b>보유금까지만</b> 걸 수 있어요. 참가비·판돈·경매 상자 금액은 <b>매 라운드 참가자 보유금 중앙값</b>에 맞춰 자동으로 커지고 작아져요. 보유금을 모두 잃으면 <b>시작 금액만큼 빚</b>을 지고 계속 참여해요. 마지막에 <b>보유금 − 빚</b>이 가장 많은 사람이 우승!<br><span class="muted">※ 게임머니는 게임 안에서만 쓰이는 가상의 돈이에요.</span></div>
@@ -1536,7 +1559,7 @@ function bindStage(){
     if(t.dataset.rlx) return rlPick(t.dataset.rlx,null);
     if(t.id==='submitBtn') return submitForm();
   };
-  st.onchange=e=>{ if(e.target.dataset.set&&ME.isHost) hSettings(e.target.dataset.set,e.target.value); };
+  st.onchange=e=>{ if(e.target.dataset.set&&ME.isHost) hSettings(e.target.dataset.set,e.target.type==='checkbox'?e.target.checked:e.target.value); };
   const amt=$('#amt'); if(amt) amt.onkeydown=e=>{ if(e.key==='Enter') submitForm(); };
 }
 function submitForm(){
@@ -1598,11 +1621,12 @@ function resultBodyOld(r){
         <div class="mside r"><div>${nameOf(x.b)}<br><b class="${x.db>0?'up':'down'}">${signed(x.db)}</b> ${lab(x.cb,x.mb)}</div>${stk(face(x.cb,x.ca),'mstk')}</div></div>`).join('');
   }
   if(r.type==='race'){
-    const R=d.runners, n=R.length, lh=n<=6?58:n<=10?46:n<=14?38:30;
-    return `<div class="live" id="live"></div><div class="evcap" id="evcap"></div>
+    const R=d.runners, n=R.length, lh=n<=6?58:n<=10?46:n<=14?38:30, myB=d.bets.find(b=>b.id===ME.pid);
+    return `${myB?`<div class="rc-my"><img src="${AVATAR_SRC[R[myB.h].av]}" alt=""><div>🎯 내가 건 말: <b>${myB.h+1}번 ${esc(R[myB.h].name)}</b> · ${fmt(myB.a)}원 <span class="muted">(배당 ${R[myB.h].odds}배)</span><div class="rc-pos" id="rcpos">출발 대기 중…</div></div></div>`:`<div class="rc-my none">👀 이번 경주는 관전 중이에요</div>`}
+      <div class="live" id="live"></div><div class="evcap" id="evcap"></div>
       <div class="track ready" id="track" style="--lh:${lh}px;--sz:${Math.round(lh*1.35)}px">
         <div class="countdown" id="countdown"></div><div class="photo" id="photo">📸 결승 직전!</div>
-        ${R.map((h,i)=>`<div class="lane"><span class="hn"><b>${i+1}</b> ${esc(h.name)}</span><div class="run"><div class="runner" data-i="${i}" style="--d:${(-Math.random()*0.4).toFixed(2)}s;--sp:${(0.32+Math.random()*0.08).toFixed(2)}s"><img class="i-run" src="${AVATAR_SRC[h.av]}" alt=""><img class="i-tired" src="${AVATAR_TIRED[h.av]}" alt=""><img class="i-fever" src="${AVATAR_FEVER[h.av]}" alt=""><span class="tag"></span></div></div></div>`).join('')}
+        ${R.map((h,i)=>`<div class="lane ${myB&&myB.h===i?'mine':''}"><span class="hn"><b>${i+1}</b> ${myB&&myB.h===i?'🎯':''}${esc(h.name)}</span><div class="run"><div class="runner" data-i="${i}" style="--d:${(-Math.random()*0.4).toFixed(2)}s;--sp:${(0.32+Math.random()*0.08).toFixed(2)}s"><img class="i-run" src="${AVATAR_SRC[h.av]}" alt=""><img class="i-tired" src="${AVATAR_TIRED[h.av]}" alt=""><img class="i-fever" src="${AVATAR_FEVER[h.av]}" alt=""><span class="tag"></span></div></div></div>`).join('')}
       </div><button class="btn sm ghost" id="skipRace">결과 바로 보기 ⏭</button>`;
   }
   if(r.type==='roulette') return rlStageHTML(r.detail);
@@ -1821,12 +1845,16 @@ function runRace(){
       const m=xs[i]>=1?'run':raceMode(plans[i],t);
       if(m!==modes[i]){
         el.classList.toggle('m-tired',m==='tired'); el.classList.toggle('m-fever',m==='fever');
-        if(m!=='run'&&sim>0){ const ec=$('#evcap'); if(ec){ ec.className='evcap '+m; ec.textContent=m==='fever'?`🔥 ${i+1}번 ${R[i].name} 피버 타임 발동!`:`💦 ${i+1}번 ${R[i].name} 지쳐서 멈췄어요!`; clearTimeout(ec._h); ec._h=setTimeout(()=>ec.classList.add('fade'),1600); } }
+        const ev=raceEv(plans[i],t); if(m==='fever'&&ev){ el.style.setProperty('--fz',(0.22/ev.r).toFixed(3)+'s'); const tg=el.querySelector('.tag'); if(tg) tg.dataset.fr='x'+ev.r; }
+        if(m!=='run'&&sim>0){ const ec=$('#evcap'); if(ec){ ec.className='evcap '+m; ec.textContent=m==='fever'?`🔥 ${i+1}번 ${R[i].name} 피버 타임 발동! (${ev?ev.r:''}배속 · ${ev?ev.d.toFixed(1):''}초)`:`💦 ${i+1}번 ${R[i].name} 지쳐서 멈췄어요!`; clearTimeout(ec._h); ec._h=setTimeout(()=>ec.classList.add('fade'),1600); } }
         modes[i]=m;
       }
     });
     const rank=xs.map((x,i)=>[x,plans[i].f,i]).sort((a,b)=>(b[0]-a[0])||(a[1]-b[1])).slice(0,3);
-    const txt=sim<0?'출발 대기 중…':rank.map(([,,i],k)=>`<span class="lv"><em>${k+1}위</em><img src="${AVATAR_SRC[R[i].av]}" alt="">${i+1}번 ${esc(R[i].name)}</span>`).join('');
+    const myB=d.bets.find(b=>b.id===ME.pid), pe=$('#rcpos');
+    if(myB&&pe&&sim>=0){ const all=xs.map((x,i)=>[x,plans[i].f,i]).sort((a,b)=>(b[0]-a[0])||(a[1]-b[1])), pos=all.findIndex(a=>a[2]===myB.h)+1, mm=modes[myB.h];
+      const ptxt=`현재 <b>${pos}위</b> / ${R.length}마리${mm==='fever'?' 🔥 피버!':mm==='tired'?' 💦 지쳤어요…':''}`; if(pe.dataset.t!==ptxt){ pe.dataset.t=ptxt; pe.innerHTML=ptxt; pe.className='rc-pos p'+Math.min(pos,4); } }
+    const txt=sim<0?'출발 대기 중…':rank.map(([,,i],k)=>`<span class="lv ${myB&&myB.h===i?'mine':''}"><em>${k+1}위</em><img src="${AVATAR_SRC[R[i].av]}" alt="">${i+1}번 ${esc(R[i].name)}</span>`).join('');
     if(txt!==liveTxt){ live.innerHTML=txt; liveTxt=txt; }
     if(sim>=endT) finish(); else requestAnimationFrame(frame);
   }
@@ -2413,10 +2441,16 @@ const dieFace=n=>Array.from({length:9},(_,i)=>`<i class="${PIPS[n].includes(i)?'
 const dieHTML=(n,cls,id)=>`<div class="die ${cls||''}" ${id?`id="${id}"`:''}>${dieFace(n)}</div>`;
 const oeTag=r=>`<span class="oe ${r==='O'?'odd':'even'}">${r==='O'?'홀':'짝'}</span>`;
 function diceHistHTML(){ const h=S.diceHist||[]; return `<div class="rl-hist"><span class="muted">최근 결과</span>${h.length?h.map(([a,b],i)=>`<span class="dc-chip ${(a+b)%2?'odd':'even'} ${i===0?'new':''}" title="${a}+${b}">${a+b}</span>`).join(''):'<span class="muted">아직 없음</span>'}</div>`; }
+// 3D 주사위: 면 배치 1앞 6뒤 2오른쪽 5왼쪽 3위 4아래 / 그 면이 앞을 보게 하는 회전값
+const DIE_FACES=[[1,'translateZ(var(--h))'],[6,'rotateY(180deg) translateZ(var(--h))'],[2,'rotateY(90deg) translateZ(var(--h))'],[5,'rotateY(-90deg) translateZ(var(--h))'],[3,'rotateX(90deg) translateZ(var(--h))'],[4,'rotateX(-90deg) translateZ(var(--h))']];
+const DIE_ROT={1:[0,0],6:[0,180],2:[0,-90],5:[0,90],3:[-90,0],4:[90,0]};
+const die3HTML=id=>`<div class="d3w" id="${id}"><div class="d3c">${DIE_FACES.map(([n,t])=>`<div class="die d3f" style="transform:${t}">${dieFace(n)}</div>`).join('')}</div></div><div class="d3s" id="${id}s"></div>`;
 function diceStageHTML(d){
-  return `<div class="dc-table" id="dctable"><div class="dc-felt"></div>${dieHTML(1,'roll','die1')}${dieHTML(1,'roll','die2')}<div class="dc-sum" id="dcsum"></div></div>
-    <div class="evcap" id="dccap">🎲 주사위를 굴립니다…</div><button class="btn sm ghost" id="skipDice">결과 바로 보기 ⏭</button>`;
+  return `<div class="dc-table d3t" id="dctable"><div class="dc-felt"></div>${die3HTML('die1')}${die3HTML('die2')}<div class="dc-sum" id="dcsum"></div></div>
+    <div class="evcap" id="dccap">🎲 주사위를 던집니다!</div><button class="btn sm ghost" id="skipDice">결과 바로 보기 ⏭</button>`;
 }
+function diceClack(v){ if(bMuted()) return; try{ B_AUDIO=B_AUDIO||new (window.AudioContext||window.webkitAudioContext)(); const a=B_AUDIO, t=a.currentTime, n=Math.floor(a.sampleRate*0.05), buf=a.createBuffer(1,n,a.sampleRate), dd=buf.getChannelData(0);
+  for(let i=0;i<n;i++) dd[i]=(Math.random()*2-1)*Math.pow(1-i/n,4); const src=a.createBufferSource(), g=a.createGain(), f=a.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1800; src.buffer=buf; g.gain.value=0.6*v; src.connect(f).connect(g).connect(a.destination); src.start(t); }catch(e){} }
 function diceReveal(d){
   const winners=d.rows.filter(x=>x.win), cnt={O:0,E:0}, amt={O:0,E:0}; d.rows.forEach(x=>{ cnt[x.c]++; amt[x.c]+=x.a; });
   const party=winners.length?`<div class="rl-party">${winners.slice(0,8).map(x=>`<div class="rl-w"><img class="rl-wav" src="${PLAYER_AV[avIdx(x.id)]}" alt=""><div>${nameOf(x.id)}</div><b class="up">${signed(x.d)}</b></div>`).join('')}</div>`
@@ -2428,14 +2462,27 @@ function diceReveal(d){
     ${diceHistHTML()}`;
 }
 function runDice(){
-  const d=S.result.detail, key=lastKey, rnd=mulberry32(d.seed);
-  const D=3+rnd()*2, els=[$('#die1'),$('#die2')], fin=[d.d1,d.d2], table=$('#dctable');
-  const P=[{x0:-160,y0:-70,x1:-58,y1:6,r:640+rnd()*360},{x0:-120,y0:80,x1:58,y1:-4,r:-(700+rnd()*360)}];
-  let t0=null, done=false, nextFace=0; RACING=true; updateDynamic();
-  const place=(el,p,k)=>{ const e=1-Math.pow(1-k,3), x=p.x0+(p.x1-p.x0)*e, y=p.y0+(p.y1-p.y0)*e-Math.abs(Math.sin(k*Math.PI*3.2))*(1-k)*70, rot=p.r*(1-e), sc=1+(1-k)*0.25;
-    el.style.transform=`translate(calc(-50% + ${x.toFixed(1)}px),calc(-50% + ${y.toFixed(1)}px)) rotate(${rot.toFixed(1)}deg) scale(${sc.toFixed(3)})`; };
+  const d=S.result.detail, key=lastKey, rnd=mulberry32(d.seed), table=$('#dctable'), W=table.clientWidth, Ht=table.clientHeight;
+  const D=3+rnd()*1.6, fin=[d.d1,d.d2], side=rnd()<0.5?-1:1;
+  // 화면 밖에서 던져져 테이블 위로 → 몇 번 튕기며 굴러가다 멈춤 (모든 화면 같은 장면)
+  const dice=[0,1].map(i=>{ const [fx,fy]=DIE_ROT[fin[i]];
+    return { el:$('#die'+(i+1)), sh:$('#die'+(i+1)+'s'),
+      x0:side*(W*0.62)+(i?-30:30), y0:-Ht*0.15+(i?50:0), x1:(i?1:-1)*W*0.12+(rnd()-0.5)*W*0.08, y1:Ht*0.5+(rnd()-0.5)*20,
+      rx0:fx+360*(3+Math.floor(rnd()*3))*(rnd()<.5?-1:1), ry0:fy+360*(3+Math.floor(rnd()*3))*(rnd()<.5?-1:1), rz0:(rnd()-0.5)*720, rz1:(rnd()-0.5)*28, fx, fy,
+      H:110+rnd()*50, bounces:3+Math.floor(rnd()*2), lastS:1 }; });
+  let t0=null, done=false; RACING=true; updateDynamic();
+  const easeOut=t=>1-Math.pow(1-t,3);
+  function place(b,k){
+    const e=easeOut(Math.min(1,k*1.08)), x=b.x0+(b.x1-b.x0)*e, yb=b.y0+(b.y1-b.y0)*easeOut(Math.min(1,k*2.2));
+    const ph=Math.pow(k,0.7)*b.bounces, sn=Math.abs(Math.sin(Math.PI*ph)), h=k<1?b.H*Math.pow(1-k,1.6)*sn:0;
+    if(k>0.08&&sn<0.12&&b.lastS>=0.12&&k<0.95){ diceClack(Math.max(0.2,1-k)); } b.lastS=sn;
+    const r=easeOut(Math.min(1,k*1.05)), rx=b.rx0+(b.fx-b.rx0)*r, ry=b.ry0+(b.fy-b.ry0)*r, rz=b.rz0+(b.rz1-b.rz0)*r;
+    b.el.style.transform=`translate(${x.toFixed(1)}px,${(yb-h).toFixed(1)}px)`;
+    b.el.firstChild.style.transform=`rotateX(-22deg) rotateY(18deg) rotateZ(${rz.toFixed(1)}deg) rotateX(${rx.toFixed(1)}deg) rotateY(${ry.toFixed(1)}deg)`;
+    b.sh.style.transform=`translate(${x.toFixed(1)}px,${(yb+44).toFixed(1)}px) scale(${(1-h/260).toFixed(3)})`; b.sh.style.opacity=(0.55-h/400).toFixed(2);
+  }
   const finish=()=>{ if(done) return; done=true; RACING=false;
-    els.forEach((el,i)=>{ el.innerHTML=dieFace(fin[i]); place(el,P[i],1); el.classList.remove('roll'); el.classList.add('landed'); });
+    dice.forEach(b=>{ place(b,1); b.sh.classList.add('glow'); });
     const sm=$('#dcsum'); if(sm){ sm.innerHTML=`<span class="dc-total">${d.sum}</span>${oeTag(d.res)}`; sm.classList.add('show'); }
     burst(table,d.res==='O'?['🔴','✨']:['🔵','✨'],12);
     const cap=$('#dccap'); if(cap) cap.innerHTML=`${d.d1} + ${d.d2} = <b>${d.sum}</b> → <b>${d.res==='O'?'홀':'짝'}</b>!`;
@@ -2444,16 +2491,13 @@ function runDice(){
   $('#skipDice').onclick=finish;
   function frame(now){
     if(done||lastKey!==key||!document.body.contains(table)) return;
-    if(t0===null) t0=now; const tt=(now-t0)/1000, k=Math.min(1,tt/D);
-    els.forEach((el,i)=>place(el,P[i],k));
-    if(tt>=nextFace&&k<0.9){ els.forEach(el=>el.innerHTML=dieFace(1+Math.floor(rnd()*6))); nextFace=tt+0.06+k*k*0.35; }
-    if(k>=0.9) els.forEach((el,i)=>{ if(!el.dataset.f){ el.dataset.f=1; el.innerHTML=dieFace(fin[i]); } });
-    if(k>0.6){ const cap=$('#dccap'); if(cap&&cap.textContent.indexOf('멈')<0) cap.textContent='🎲 데굴데굴… 멈추려고 해요!'; }
+    if(t0===null) t0=now; const k=Math.min(1,(now-t0)/1000/D);
+    dice.forEach(b=>place(b,k));
+    if(k>0.55){ const cap=$('#dccap'); if(cap&&cap.textContent.indexOf('데굴')<0) cap.textContent='🎲 데굴데굴… 멈추려고 해요!'; }
     if(k>=1) finish(); else requestAnimationFrame(frame);
   }
-  els.forEach((el,i)=>place(el,P[i],0)); requestAnimationFrame(frame);
+  dice.forEach(b=>place(b,0)); requestAnimationFrame(frame);
 }
-
 /* ===== 룰렛 화면 ===== */
 const rlCls=n=>({R:'rc-r',B:'rc-b',G:'rc-g'})[rlColor(n)];
 function rlHistHTML(){ const h=S.rlHist||[]; return `<div class="rl-hist"><span class="muted">최근 결과</span>${h.length?h.map((n,i)=>`<span class="rl-chip ${rlCls(n)} ${i===0?'new':''}">${n}</span>`).join(''):'<span class="muted">아직 없음</span>'}</div>`; }
