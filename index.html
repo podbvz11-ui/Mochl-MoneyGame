@@ -260,6 +260,17 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .du-pair.draw .du-mid::before{content:'무승부';font-weight:900;color:var(--muted)}
 @keyframes punch{0%{transform:none}40%{transform:translateX(var(--px,24px)) scale(1.12)}100%{transform:none}}
 .du-s.r{--px:-24px}
+/* plinko */
+.pk-tbl{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;margin:6px 0 2px}
+.pk-cell{text-align:center;border-radius:8px;padding:6px 0;color:#3a2a1e}
+.pk-cell b{display:block;font-size:15px;font-weight:900}.pk-cell i{display:block;font-style:normal;font-size:10px;opacity:.75}
+.pk-tbl.small{margin-top:10px}.pk-tbl.small .pk-cell b{font-size:13px}
+.m10{background:#d9785f}.m3{background:#e5a95b}.m1,.m07{background:#ecd3a0}.m04{background:#a8c9a8}
+.pk-cnt{display:flex;flex-wrap:wrap;gap:6px}.pk-cnt .btn{min-width:40px}
+.pk-wrap{display:flex;justify-content:center;margin-top:8px;padding:8px;border-radius:16px;background:#0d1014}
+.pk-me{text-align:center;margin-top:8px;font-size:15px;min-height:22px}
+.pk-chip{display:inline-block;padding:0 6px;margin:0 1px;border-radius:6px;font-size:11px;font-weight:800;color:#3a2a1e}
+@media(max-width:520px){.pk-cell b{font-size:12px}.pk-cell i{font-size:9px}}
 /* lotto */
 .lt-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:6px}
 @media(max-width:620px){.lt-grid{grid-template-columns:repeat(5,1fr)}}
@@ -430,6 +441,7 @@ const GAMES = {
   ,dice:{ name:'주사위 홀짝', icon:'🎲', stk:'proud', desc:'주사위 2개를 굴려 합이 홀수일지 짝수일지 맞혀요. 맞히면 건 금액의 2배(원금 포함)를 받아요. 홀·짝 확률은 각각 50%!' }
   ,shell:{ name:'햄찌 야바위', icon:'🐹', stk:'nervous', desc:'해바라기씨를 문 햄스터를 2초간 보여준 뒤 눈으로 못 따라갈 속도로 섞어요. 섞기가 끝나면 씨앗을 문 햄스터를 골라요. 맞히면 건 금액의 3배(원금 포함)!' }
   ,lotto:{ name:'숫자 추첨', icon:'🔮', stk:'heartwave', desc:'1~20 공 중 추첨기에서 나올 숫자를 맞혀요. 숫자를 1~3개 고르고 숫자마다 같은 금액을 걸어요. 고른 숫자가 나오면 숫자당 금액의 20배를 받아요!' }
+  ,plinko:{ name:'플링코', icon:'🌻', stk:'love', desc:'해바라기씨가 핀 사이를 튕기며 떨어져 9칸 중 하나에 들어가요. 가운데는 낮은 배수, 양끝은 최대 10배! 씨앗 1개당 금액과 개수를 정해서 떨어뜨려요.' }
 };
 // 경주 캐릭터 20종 (이미지 순서와 같음)
 const AVATAR_NAMES=['햄찌','레드','블루','그린','옐로','리본','신사','셰프','공룡','천사','마법사','탐정','기사','스포츠','시크','딸기','꿀벌','마도로스','털모자','임금님'];
@@ -522,6 +534,7 @@ function validate(type,d,params){
     case 'pd': return (d.c==='C'||d.c==='B')?{c:d.c}:null;
     case 'race': { const h=Math.floor(Number(d.h)), a=toAmt(d.a); return (h>=0&&h<RN&&a!==null&&a>0)?{h,a}:null; }
     case 'duel': { const a=toAmt(d.a); return (HANDS[d.r]&&a!==null)?{r:d.r,a}:null; }
+    case 'plinko': { const a=toAmt(d.a), c=Math.floor(Number(d.c)); return (a!==null&&a>0&&c>=1&&c<=PK_MAXBALL)?{a,c}:null; }
     case 'lotto': { const a=toAmt(d.a); if(!Array.isArray(d.nums)||a===null||a<=0) return null;
       const nums=[...new Set(d.nums.map(x=>Math.floor(Number(x))))].filter(x=>x>=1&&x<=20).sort((x,y)=>x-y);
       return (nums.length>=1&&nums.length<=3&&nums.length===d.nums.length)?{nums,a}:null; }
@@ -600,6 +613,13 @@ function resolve(type,params,subs){
     });
     return { deltas, detail:{ rows } };
   }
+  if(type==='plinko'){
+    // 방장이 씨앗마다 좌/우 경로(8비트)를 정함 → 화면의 씨앗은 이 경로를 그대로 따라감
+    const rows=Object.entries(subs).map(([id,s])=>{ const paths=[], slots=[]; let pay=0;
+      for(let b=0;b<s.c;b++){ const p=Math.floor(Math.random()*256); paths.push(p); const k=pkSlot(p); slots.push(k); pay+=Math.floor(s.a*PK_MULT[k]); }
+      const dv=pay-s.a*s.c; add(id,dv); return { id, a:s.a, c:s.c, paths, slots, pay, d:dv }; }).sort((x,y)=>y.d-x.d);
+    return { deltas, detail:{ rows, seed:Math.floor(Math.random()*2147483647) } };
+  }
   if(type==='lotto'){
     const n=1+Math.floor(Math.random()*20);
     const rows=Object.entries(subs).map(([id,s])=>{ const hit=s.nums.includes(n), cost=s.a*s.nums.length, dv=hit?s.a*20-cost:-cost; add(id,dv); return { id, nums:s.nums, a:s.a, hit, d:dv }; }).sort((x,y)=>y.d-x.d);
@@ -633,12 +653,16 @@ function shellPlan(seed,shufMs){
     swaps.push({t0:t,dur:Math.min(dur,shufMs-t),a,b,up:rnd()<0.5}); t+=dur; }
   return swaps;
 }
+// 플링코: 핀 8줄 → 9칸. 칸별 도착 확률 = C(8,k)/256, 평균 회수율 약 98.8%
+const PK_ROWS=8, PK_MULT=[10,3,1.4,0.7,0.4,0.7,1.4,3,10], PK_MAXBALL=10;
+const pkSlot=path=>{ let k=0; for(let i=0;i<PK_ROWS;i++) if(path>>i&1) k++; return k; };
 // 한 번의 제출에서 거는 총액 (고정 참가비 게임은 0)
 function betTotal(type,d){
   if(!d) return 0;
   if(type==='auction') return d.bid||0;
   if(type==='race'||type==='duel'||type==='dice'||type==='shell') return d.a||0;
   if(type==='lotto') return (d.a||0)*((d.nums||[]).length);
+  if(type==='plinko') return (d.a||0)*(d.c||0);
   if(type==='roulette') return Object.values(d.bets||{}).reduce((t,b)=>t+(Number(b.a)||0),0);
   return 0;
 }
@@ -646,6 +670,7 @@ function betTotal(type,d){
 function clampMove(type,mv,money){
   if(!mv) return mv; money=Math.max(0,Math.floor(money));
   if(type==='auction') mv.bid=Math.min(mv.bid,money);
+  if(type==='plinko'&&mv.a*mv.c>money){ mv.a=Math.floor(money/mv.c); if(mv.a<1){ mv.c=1; mv.a=Math.max(1,money); } }
   if(type==='lotto'&&mv.a*mv.nums.length>money){ mv.a=Math.floor(money/mv.nums.length); if(mv.a<1){ mv.nums=mv.nums.slice(0,1); mv.a=Math.max(1,money); } }
   if(type==='race'||type==='dice'||type==='shell') mv.a=Math.max(1,Math.min(mv.a,money));
   if(type==='duel') mv.a=Math.min(mv.a,money);
@@ -669,6 +694,7 @@ function botMove(type,money,params){
         bets[k]={ v, a:botAmount(money,k==='num'?0.02:0.06,k==='num'?0.08:0.22,100) }; }
       return { bets };
     }
+    case 'plinko': { const c=1+Math.floor(Math.random()*5); return { c, a:botAmount(money,0.02,0.1,100) }; }
     case 'lotto': { const k=1+Math.floor(Math.random()*3); return { nums:shuffle(Array.from({length:20},(_,i)=>i+1)).slice(0,k).sort((x,y)=>x-y), a:botAmount(money,0.03,0.12,100) }; }
     case 'shell': return { k: Math.floor(Math.random()*3), a: botAmount(money,0.08,0.35,100) };
     case 'dice': return { c: Math.random()<0.5?'O':'E', a: botAmount(money,0.08,0.4,100) };
@@ -698,7 +724,7 @@ let clockOffset=0, mySub={round:-1,data:null}, lastKey='', SEL={}, kicked=false,
 /* ================= 방장(호스트) ================= */
 function newState(code,title,hostPid,hostName){
   return { code, title, hostId:hostPid, phase:'lobby', round:0,
-    settings:{ startMoney:10000, rounds:5, timer:40, fee:1000, pdStake:2000, horses:6, rlTime:60, diceTime:20, shellTime:5, lottoTime:20 },
+    settings:{ startMoney:10000, rounds:5, timer:40, fee:1000, pdStake:2000, horses:6, rlTime:60, diceTime:20, shellTime:5, lottoTime:20, plinkoTime:20 },
     players:{ [hostPid]:{ name:hostName, money:10000, online:true, last:0, av:Math.floor(Math.random()*PLAYER_AV.length) } },
     game:null, result:null };
 }
@@ -751,7 +777,7 @@ function hSettings(k,v){
   const st=HOST.state; if(st.phase!=='lobby') return;
   if(k==='title'){ st.title=String(v).trim().slice(0,30)||'머니 서바이벌'; return changed(); }
   if(k==='bots'){ setBots(Math.min(9,Math.max(1,Math.floor(Number(v))||1))); return changed(); }
-  const lim={ startMoney:[100,1e12], rounds:[1,30], timer:[10,300], fee:[0,1e12], pdStake:[0,1e12], horses:[2,AVATAR_NAMES.length], rlTime:[5,300], diceTime:[5,300], shellTime:[3,60], lottoTime:[5,300] }[k];
+  const lim={ startMoney:[100,1e12], rounds:[1,30], timer:[10,300], fee:[0,1e12], pdStake:[0,1e12], horses:[2,AVATAR_NAMES.length], rlTime:[5,300], diceTime:[5,300], shellTime:[3,60], lottoTime:[5,300], plinkoTime:[5,300] }[k];
   if(!lim) return;
   let n=Math.floor(Number(v)); if(!Number.isFinite(n)) return changed();
   n=Math.min(lim[1],Math.max(lim[0],n)); st.settings[k]=n; changed();
@@ -770,7 +796,7 @@ function hStartRound(type){
   st.round+=1;
   if(type==='shell'){ params.seed=Math.floor(Math.random()*2147483647); params.start0=Math.floor(Math.random()*3);
     params.show=2000; params.shuf=5000+Math.floor(Math.random()*3000); params.pick=(st.settings.shellTime||5)*1000; params.t0=Date.now()+600; }
-  const secs=type==='roulette'?(st.settings.rlTime||60):type==='dice'?(st.settings.diceTime||20):type==='shell'?(params.show+params.shuf+params.pick+600)/1000:type==='lotto'?(st.settings.lottoTime||20):st.settings.timer;
+  const secs=type==='roulette'?(st.settings.rlTime||60):type==='dice'?(st.settings.diceTime||20):type==='shell'?(params.show+params.shuf+params.pick+600)/1000:type==='lotto'?(st.settings.lottoTime||20):type==='plinko'?(st.settings.plinkoTime||20):st.settings.timer;
   st.game={ type, params, eligible:online, submitted:{}, deadline:Date.now()+secs*1000 };
   if(type==='roulette'||type==='dice'||type==='lotto') st.game.stats={};
   st.result=null; HOST.subs={}; st.phase='play'; changed();
@@ -1016,7 +1042,7 @@ function stageHTML(){
   }
   return '';
 }
-const SETTINGS=[['startMoney','시작 금액'],['rounds','라운드 수'],['timer','제한 시간(초)'],['fee','유일 숫자 참가비'],['pdStake','협력/배신 기본 판돈'],['horses','경마 출전 수 (2~20)'],['rlTime','룰렛 베팅 시간(초)'],['diceTime','주사위 홀짝 선택 시간(초)'],['shellTime','야바위 선택 시간(초)'],['lottoTime','숫자 추첨 선택 시간(초)']];
+const SETTINGS=[['startMoney','시작 금액'],['rounds','라운드 수'],['timer','제한 시간(초)'],['fee','유일 숫자 참가비'],['pdStake','협력/배신 기본 판돈'],['horses','경마 출전 수 (2~20)'],['rlTime','룰렛 베팅 시간(초)'],['diceTime','주사위 홀짝 선택 시간(초)'],['shellTime','야바위 선택 시간(초)'],['lottoTime','숫자 추첨 선택 시간(초)'],['plinkoTime','플링코 베팅 시간(초)']];
 function lobbyHTML(){
   const st=S.settings;
   const botCount=Object.values(S.players).filter(p=>p.bot).length;
@@ -1055,6 +1081,7 @@ function describeSub(type,d){
     case 'pd': return d.c==='C'?'<b>🤝 협력</b>':'<b>🗡️ 배신</b>';
     case 'race': return `<b>${S.game.params.runners[d.h].name}</b>에 <b>${fmt(d.a)}</b>원`;
     case 'duel': return `<b>${HANDS[d.r]}</b> · <b>${fmt(d.a)}</b>원`;
+    case 'plinko': return `씨앗 <b>${d.c}개</b> × <b>${fmt(d.a)}</b>원 (총 ${fmt(d.a*d.c)}원)`;
     case 'lotto': return `숫자 <b>${d.nums.join(', ')}</b> · 숫자당 <b>${fmt(d.a)}</b>원 (총 ${fmt(d.a*d.nums.length)}원)`;
     case 'shell': return `<b>${d.k+1}번 자리</b>에 <b>${fmt(d.a)}</b>원`;
     case 'dice': return `<b>${d.c==='O'?'홀':'짝'}</b>에 <b>${fmt(d.a)}</b>원`;
@@ -1088,6 +1115,10 @@ function inputHTML(g){
     case 'auction': return `${amtInput('입찰 금액')}<button class="btn big gold" id="submitBtn">입찰하기</button>`;
     case 'pd': return `<div class="pdgrid"><button class="btn pdbtn" data-pd="C">${stk('hugHeart','pdimg')}🤝 협력<small>함께 이득을 노린다</small></button><button class="btn pdbtn" data-pd="B">${stk('angry','pdimg')}🗡️ 배신<small>혼자 크게 먹는다</small></button></div>`;
     case 'race': return `<div class="horses">${g.params.runners.map((h,i)=>`<button class="btn horse-opt" data-grp="h" data-sel="${i}"><img src="${AVATAR_SRC[h.av]}" alt=""><span class="ho-t"><b>${i+1}번 ${esc(h.name)}</b><span class="muted">배당 <b class="odds">${h.odds}배</b> · 우승 확률 ${Math.max(1,Math.round(h.p*100))}%</span></span></button>`).join('')}</div>${amtInput('걸 금액')}<button class="btn big gold" id="submitBtn">베팅하기</button>`;
+    case 'plinko': return `${pkTableHTML()}
+        <label>해바라기씨 개수</label><div class="pk-cnt">${Array.from({length:PK_MAXBALL},(_,i)=>i+1).map(n=>`<button class="btn sm ${n===1?'active':''}" data-grp="pc" data-sel="${n}">${n}</button>`).join('')}</div>
+        <label>씨앗 1개당 금액 (총액은 보유금 <b>${fmt(myMoney())}원</b>까지)</label><div class="amtrow"><input type="number" id="amt" min="1" inputmode="numeric" placeholder="씨앗 1개당 금액"><button class="btn sm" data-allin="plinko">최대</button></div>
+        <div class="rl-total" id="pktotal"></div><button class="btn big gold" id="submitBtn">🌻 떨어뜨리기</button>`;
     case 'lotto': return `${lottoHistHTML()}<div class="lt-grid">${Array.from({length:20},(_,i)=>i+1).map(n=>`<button class="lball b${lottoBand(n)}" data-ln="${n}">${n}<i class="cnt" data-ck="${n}"></i></button>`).join('')}</div>
         <div class="muted rl-tip">숫자를 <b>1~3개</b> 고르세요 (다시 누르면 취소) · 적중 시 숫자당 금액의 <b>20배</b></div>
         <label>숫자 하나당 금액 (총액은 보유금 <b>${fmt(myMoney())}원</b>까지)</label><div class="amtrow"><input type="number" id="amt" min="1" inputmode="numeric" placeholder="숫자당 금액"><button class="btn sm" data-allin="lotto">최대</button></div>
@@ -1102,7 +1133,7 @@ function inputHTML(g){
   }
   return '';
 }
-const HINT={ lotto:'숫자를 1~3개 고르고 숫자당 1원 이상 입력하세요', shell:'씨앗을 문 햄스터를 고르고 1원 이상 걸어주세요', dice:'홀 또는 짝을 고르고 1원 이상 걸어주세요', roulette:'걸 항목을 고르고 각각 1원 이상 입력하세요', unique:'숫자를 하나 골라주세요', auction:'입찰 금액을 입력하세요 (0 이상)', race:'말을 고르고 1원 이상 걸어주세요', duel:'가위·바위·보를 고르고 금액을 입력하세요' };
+const HINT={ plinko:'씨앗 개수와 1개당 금액(1원 이상)을 정해주세요', lotto:'숫자를 1~3개 고르고 숫자당 1원 이상 입력하세요', shell:'씨앗을 문 햄스터를 고르고 1원 이상 걸어주세요', dice:'홀 또는 짝을 고르고 1원 이상 걸어주세요', roulette:'걸 항목을 고르고 각각 1원 이상 입력하세요', unique:'숫자를 하나 골라주세요', auction:'입찰 금액을 입력하세요 (0 이상)', race:'말을 고르고 1원 이상 걸어주세요', duel:'가위·바위·보를 고르고 금액을 입력하세요' };
 function bindStage(){
   const st=$('#stage');
   st.onclick=e=>{
@@ -1112,9 +1143,9 @@ function bindStage(){
     if(t.id==='finalBtn') return hFinal();
     if(t.id==='resetBtn') return hReset();
     if(t.dataset.game) return hStartRound(t.dataset.game);
-    if(t.dataset.grp){ st.querySelectorAll(`[data-grp="${t.dataset.grp}"]`).forEach(b=>b.classList.toggle('active',b===t)); SEL[t.dataset.grp]=t.dataset.sel; return; }
+    if(t.dataset.grp){ st.querySelectorAll(`[data-grp="${t.dataset.grp}"]`).forEach(b=>b.classList.toggle('active',b===t)); SEL[t.dataset.grp]=t.dataset.sel; if(t.dataset.grp==='pc') pkTotal(); return; }
     if(t.dataset.pd) return submit({c:t.dataset.pd});
-    if(t.dataset.allin){ const a=$('#amt'); if(a) a.value=t.dataset.allin==='lotto'?Math.floor(myMoney()/Math.max(1,(SEL.ln||[]).length)):myMoney(); lottoTotal(); return; }
+    if(t.dataset.allin){ const a=$('#amt'); if(a) a.value=t.dataset.allin==='lotto'?Math.floor(myMoney()/Math.max(1,(SEL.ln||[]).length)):t.dataset.allin==='plinko'?Math.floor(myMoney()/Math.max(1,+(SEL.pc||1))):myMoney(); lottoTotal(); pkTotal(); return; }
     if(t.dataset.ln) return lottoPick(+t.dataset.ln);
     if(t.dataset.rk) return rlPick(t.dataset.rk,t.dataset.rv);
     if(t.dataset.rlx) return rlPick(t.dataset.rlx,null);
@@ -1125,7 +1156,7 @@ function bindStage(){
 }
 function submitForm(){
   const g=S.game, a=$('#amt')?$('#amt').value:'';
-  const d={ unique:{n:SEL.n}, auction:{bid:a}, race:{h:SEL.h,a}, duel:{r:SEL.r,a}, roulette:{bets:rlSlipBets()}, dice:{c:SEL.c,a}, shell:{k:SEL.k,a}, lotto:{nums:(SEL.ln||[]).slice(),a} }[g.type];
+  const d={ unique:{n:SEL.n}, auction:{bid:a}, race:{h:SEL.h,a}, duel:{r:SEL.r,a}, roulette:{bets:rlSlipBets()}, dice:{c:SEL.c,a}, shell:{k:SEL.k,a}, lotto:{nums:(SEL.ln||[]).slice(),a}, plinko:{c:SEL.pc||1,a} }[g.type];
   submit(d);
 }
 function submit(d){
@@ -1150,7 +1181,7 @@ function resultHTML(){
   const ln=Object.entries(r.loans||{});
   const loanHTML=ln.length?`<div class="loanbox">${stk('cryPuddle','mstk')}<div><b>💳 파산!</b> 보유금을 모두 잃어 빚을 졌어요<div class="deltas">${ln.map(([id,a])=>`<span class="pill">${nameOf(id)} <b class="down">빚 +${fmt(a)}</b></span>`).join('')}</div></div></div>`:'';
   return `<div class="ghead"><div class="gicon">${gimg(G)}</div><div><div class="gname">라운드 ${r.round} 결과 · ${G.name}</div></div></div>
-    <div id="rbody">${resultBody(r)}</div><div id="reveal" class="hidden">${r.type==='race'?raceReveal(r.detail):r.type==='roulette'?rlReveal(r.detail):r.type==='dice'?diceReveal(r.detail):r.type==='shell'?shellReveal(r.detail):r.type==='lotto'?lottoReveal(r.detail):`<div class="sec">📋 결과 요약</div>${resultBodyOld(r)}`}${loanHTML}${deltas}${next}</div>`;
+    <div id="rbody">${resultBody(r)}</div><div id="reveal" class="hidden">${r.type==='race'?raceReveal(r.detail):r.type==='roulette'?rlReveal(r.detail):r.type==='dice'?diceReveal(r.detail):r.type==='shell'?shellReveal(r.detail):r.type==='lotto'?lottoReveal(r.detail):r.type==='plinko'?pkReveal(r.detail):`<div class="sec">📋 결과 요약</div>${resultBodyOld(r)}`}${loanHTML}${deltas}${next}</div>`;
 }
 const SHOW_TYPES=['unique','auction','pd','duel'];
 function resultBody(r){ return SHOW_TYPES.includes(r.type)?showStage(r):resultBodyOld(r); }
@@ -1193,6 +1224,7 @@ function resultBodyOld(r){
   if(r.type==='dice') return diceStageHTML(r.detail);
   if(r.type==='shell') return shellResultStage(r.detail);
   if(r.type==='lotto') return lottoStageHTML(r.detail);
+  if(r.type==='plinko') return pkStageHTML(r.detail);
   if(r.type==='duel'){
     const face=dv=>dv>0?'excited':dv<0?'cry':'shrug';
     const side=(h,a,m)=>`${HANDS[h]} · ${fmt(a)}원${m?' <span class="muted">(미제출)</span>':''}`;
@@ -1217,7 +1249,9 @@ function afterStage(){
   if(S.phase==='result'&&S.result.type==='dice') runDice();
   if(S.phase==='result'&&S.result.type==='shell') runShellReveal();
   if(S.phase==='result'&&S.result.type==='lotto') runLotto();
+  if(S.phase==='result'&&S.result.type==='plinko') runPlinko();
   if(S.phase==='play'&&S.game.type==='shell') runShellPlay();
+  if(S.phase==='play'&&S.game.type==='plinko'&&$('#pktotal')){ SEL.pc='1'; pkTotal(); const a=$('#amt'); if(a) a.oninput=pkTotal; }
   if(S.phase==='play'&&S.game.type==='lotto'&&$('#lttotal')){ SEL.ln=[]; lottoTotal(); const a=$('#amt'); if(a) a.oninput=lottoTotal; }
   if(S.phase==='play'&&S.game.type==='roulette'&&$('#rlslip')){ SEL.rl={}; rlRenderSlip(); }
 }
@@ -1406,6 +1440,84 @@ function runRace(){
   }
   requestAnimationFrame(frame);
 }
+/* ===== 플링코 화면 ===== */
+const PK_PROB=[1,8,28,56,70,56,28,8,1].map(x=>x/256);
+const pkCls=m=>m>=10?'m10':m>=3?'m3':m>=1?'m1':m>=0.7?'m07':'m04';
+function pkTableHTML(){ return `<div class="pk-tbl">${PK_MULT.map((m,i)=>`<div class="pk-cell ${pkCls(m)}"><b>${m}x</b><i>${(PK_PROB[i]*100).toFixed(1)}%</i></div>`).join('')}</div>
+  <div class="muted rl-tip">위: 배수 · 아래: 씨앗이 그 칸에 들어갈 확률</div>`; }
+function pkTotal(){ const e=$('#pktotal'); if(!e) return; const c=+(SEL.pc||1), a=Math.max(0,Math.floor(Number(($('#amt')||{}).value)||0)), have=myMoney(), tot=a*c;
+  e.innerHTML=`씨앗 <b>${c}개</b> × ${fmt(a)}원 = 총 <b class="${tot>have?'down':''}">${fmt(tot)}원</b> / 보유금 ${fmt(have)}원 · 최대 <b class="up">${fmt(a*10*c)}원</b>${tot>have?' · <b class="down">보유금을 넘었어요!</b>':''}`; }
+function pkStageHTML(d){
+  const total=d.rows.reduce((t,x)=>t+x.c,0);
+  return `<div class="pk-wrap"><canvas id="pkcv"></canvas></div>
+    <div class="pk-me" id="pkme"></div>
+    <div class="evcap" id="pkcap">🌻 해바라기씨 ${total}개를 떨어뜨립니다!</div><button class="btn sm ghost" id="skipPk">결과 바로 보기 ⏭</button>`;
+}
+function pkReveal(d){
+  const cnt=Array(9).fill(0); d.rows.forEach(x=>x.slots.forEach(k=>cnt[k]++));
+  const winners=d.rows.filter(x=>x.d>0);
+  const party=winners.length?`<div class="rl-party">${winners.slice(0,8).map(x=>`<div class="rl-w"><img class="rl-wav" src="${PLAYER_AV[avIdx(x.id)]}" alt=""><div>${nameOf(x.id)}</div><b class="up">${signed(x.d)}</b></div>`).join('')}</div>`
+    :`${stk('cryPuddle')}<div class="muted" style="text-align:center">이번엔 이득 본 사람이 없어요!</div>`;
+  const big=d.rows.flatMap(x=>x.slots.map(k=>PK_MULT[k])).reduce((m,v)=>Math.max(m,v),0);
+  return `<div class="announce">${big>=3?stk('sparkle','rx bounce'):stk('shrug')}${big>=10?'🎉 <b>10배 칸 등장!</b>':big>=3?'✨ 3배 칸에 들어간 씨앗이 있어요!':'모두 가운데로 모였어요…'}
+      <div class="pk-tbl small">${PK_MULT.map((m,i)=>`<div class="pk-cell ${pkCls(m)}"><b>${m}x</b><i>${cnt[i]}개</i></div>`).join('')}</div></div>${party}
+    ${d.rows.length?`<div class="sec">베팅 내역</div><div class="list">${d.rows.map(x=>`<div class="li ${x.d>0?'win':''}"><span>${nameOf(x.id)} · ${x.c}개 × ${fmt(x.a)}원 → ${x.slots.map(k=>`<span class="pk-chip ${pkCls(PK_MULT[k])}">${PK_MULT[k]}x</span>`).join('')} <span class="muted">= ${fmt(x.pay)}원</span></span><b class="${x.d>0?'up':x.d<0?'down':''}">${x.d?signed(x.d):'±0'}</b></div>`).join('')}</div>`:'<p class="muted">아무도 떨어뜨리지 않았어요.</p>'}`;
+}
+function runPlinko(){
+  const d=S.result.detail, key=lastKey, rnd=mulberry32(d.seed), cv=$('#pkcv');
+  const W=Math.min(560,cv.parentElement.clientWidth-4), H=Math.round(W*0.86), dpr=window.devicePixelRatio||1;
+  cv.width=W*dpr; cv.height=H*dpr; cv.style.width=W+'px'; cv.style.height=H+'px'; const c=cv.getContext('2d'); c.scale(dpr,dpr);
+  const sp=W/10.6, top=H*0.1, rowH=(H*0.72-top)/PK_ROWS, cx=W/2, slotY=top+PK_ROWS*rowH+rowH*0.15, slotH=H-slotY-6, pinR=Math.max(3,sp*0.1);
+  // 떨어뜨릴 씨앗 목록: 참가자들을 번갈아가며
+  const queue=[], maxC=Math.max(0,...d.rows.map(x=>x.c));
+  for(let b=0;b<maxC;b++) d.rows.forEach((x,pi)=>{ if(b<x.c) queue.push({ path:x.paths[b], slot:x.slots[b], mine:x.id===ME.pid, pid:x.id, a:x.a, spin:(rnd()-0.5)*6, jx:(rnd()-0.5)*0.12 }); });
+  const gap=Math.min(0.32,6/Math.max(1,queue.length)), hop=0.24, fall=0.45, dur=hop*PK_ROWS+fall;
+  queue.forEach((q,i)=>q.t0=i*gap);
+  const endT=queue.length?queue[queue.length-1].t0+dur+0.3:0.5;
+  const landed=Array(9).fill(0), flash=Array(9).fill(0); let myPay=0, myN=0, myTot=queue.filter(q=>q.mine).length;
+  let t0=null, done=false; RACING=true; updateDynamic();
+  const pinX=(i,j)=>cx+(j-i/2-1)*sp, pinY=i=>top+i*rowH;
+  function seedPos(q,t){
+    let R=0, i=Math.floor(t/hop);
+    if(i<PK_ROWS){ for(let r=0;r<i;r++) R+=(q.path>>r&1); const f=(t-i*hop)/hop, dir=(q.path>>i&1)?1:-1;
+      const x0=cx+(R-i/2)*sp, x=x0+dir*sp*0.5*f, y=pinY(i)-pinR*2.4+(rowH)*f*f-Math.sin(f*Math.PI)*rowH*0.32; return [x+q.jx*sp*(1-f),y,q.spin*t]; }
+    const k=q.slot, f=Math.min(1,(t-PK_ROWS*hop)/fall), x=cx+(k-4)*sp, y0=pinY(PK_ROWS)-pinR*2.4, y=y0+(slotY+slotH*0.45-y0)*f*f; return [x,y,q.spin*t];
+  }
+  function drawSeed(x,y,rot,mine){
+    c.save(); c.translate(x,y); c.rotate(rot); const s=sp*0.2;
+    if(mine){ c.shadowColor='rgba(255,215,80,1)'; c.shadowBlur=12; }
+    c.fillStyle='#26262a'; c.beginPath(); c.moveTo(0,-s*1.5); c.bezierCurveTo(s*1.1,-s*0.8,s*1.1,s*0.9,0,s*1.5); c.bezierCurveTo(-s*1.1,s*0.9,-s*1.1,-s*0.8,0,-s*1.5); c.fill(); c.shadowBlur=0;
+    c.strokeStyle='#efe8d0'; c.lineWidth=Math.max(1.2,s*0.28); c.beginPath(); c.moveTo(0,-s*1.2); c.lineTo(0,s*1.2); c.stroke();
+    c.strokeStyle='#bfb592'; c.lineWidth=Math.max(0.8,s*0.16); c.beginPath(); c.moveTo(-s*0.45,-s*0.8); c.lineTo(-s*0.45,s*0.8); c.moveTo(s*0.45,-s*0.8); c.lineTo(s*0.45,s*0.8); c.stroke();
+    if(mine){ c.strokeStyle='#f5c542'; c.lineWidth=1.5; c.beginPath(); c.ellipse(0,0,s*1.15,s*1.75,0,0,Math.PI*2); c.stroke(); }
+    c.restore();
+  }
+  const COLS={m10:'#d9785f',m3:'#e5a95b',m1:'#ecd3a0',m07:'#ecd3a0',m04:'#a8c9a8'};
+  function draw(t){
+    c.clearRect(0,0,W,H);
+    c.fillStyle='#171b20'; c.strokeStyle='#8fa1b3'; c.lineWidth=4; c.beginPath(); c.moveTo(cx,top-rowH*0.9); c.lineTo(cx+sp*5.1,slotY-2); c.lineTo(cx-sp*5.1,slotY-2); c.closePath(); c.fill(); c.stroke();
+    for(let i=0;i<PK_ROWS;i++) for(let j=0;j<i+3;j++){ c.fillStyle='#c9a06b'; c.beginPath(); c.arc(pinX(i,j),pinY(i),pinR,0,Math.PI*2); c.fill(); }
+    for(let k=0;k<9;k++){ const x=cx+(k-4)*sp, m=PK_MULT[k], f=Math.max(0,flash[k]-t)/0.5;
+      c.fillStyle=COLS[pkCls(m)]; c.beginPath(); c.roundRect(x-sp*0.46,slotY+f*-6,sp*0.92,slotH,8); c.fill();
+      if(f>0){ c.fillStyle=`rgba(255,255,255,${0.55*f})`; c.beginPath(); c.roundRect(x-sp*0.46,slotY-6*f,sp*0.92,slotH,8); c.fill(); }
+      c.fillStyle='#3a2a1e'; c.font=`800 ${Math.round(sp*0.28)}px Pretendard,sans-serif`; c.textAlign='center'; c.textBaseline='middle'; c.fillText(m+'x',x,slotY+slotH*0.42-f*6);
+      if(landed[k]){ c.font=`700 ${Math.round(sp*0.2)}px Pretendard,sans-serif`; c.fillText(landed[k]+'개',x,slotY+slotH*0.8-f*6); } }
+    c.fillStyle='#e8b84a'; c.beginPath(); c.arc(cx,top-rowH*0.9,sp*0.22,0,Math.PI*2); c.fill();
+    for(const q of queue){ const lt=t-q.t0; if(lt<0) continue;
+      if(lt>=dur){ if(!q.done){ q.done=true; landed[q.slot]++; flash[q.slot]=t+0.5; if(q.mine){ myN++; myPay+=Math.floor(q.a*PK_MULT[q.slot]); pkMe(); } if(PK_MULT[q.slot]>=10) pkCap(`🎉 10배 칸! ${plainName(q.pid)} 님 대박!`,'good'); else if(PK_MULT[q.slot]>=3) pkCap(`✨ ${plainName(q.pid)} 님 씨앗이 3배 칸에!`); } continue; }
+      const [x,y,r]=seedPos(q,lt); drawSeed(x,y,r,q.mine); }
+  }
+  function pkCap(t,cls){ const e=$('#pkcap'); if(e){ e.className='evcap '+(cls||''); e.innerHTML=t; } }
+  function pkMe(){ const e=$('#pkme'); if(!e||!myTot) return; const me=d.rows.find(x=>x.id===ME.pid); e.innerHTML=`🌻 내 씨앗 <b>${myN}/${myTot}</b> 도착 · 받은 금액 <b class="up">${fmt(myPay)}원</b> <span class="muted">(건 금액 ${fmt(me.a*me.c)}원)</span>`; }
+  pkMe();
+  const finish=()=>{ if(done) return; done=true; RACING=false; queue.forEach(q=>{ if(!q.done){ q.done=true; landed[q.slot]++; if(q.mine){ myN++; myPay+=Math.floor(q.a*PK_MULT[q.slot]); } } }); pkMe(); draw(1e9);
+    pkCap('🌻 모든 씨앗이 도착했어요!'); const sk=$('#skipPk'); if(sk) sk.remove();
+    setTimeout(()=>{ if(lastKey!==key) return; const rv=$('#reveal'); if(rv) rv.classList.remove('hidden'); updateDynamic(); },700); };
+  $('#skipPk').onclick=finish;
+  function frame(now){ if(done||lastKey!==key||!document.body.contains(cv)) return; if(t0===null) t0=now; const t=(now-t0)/1000; draw(t); if(t>=endT) finish(); else requestAnimationFrame(frame); }
+  draw(0); requestAnimationFrame(frame);
+}
+
 /* ===== 숫자 추첨 화면 ===== */
 const lottoBand=n=>Math.ceil(n/4); // 1~4 노랑, 5~8 파랑, 9~12 빨강, 13~16 회색, 17~20 초록
 const LBAND={1:['#f6c22c','#7a5a00'],2:['#3f8ff0','#0c3a7a'],3:['#ef4b5a','#7a1520'],4:['#9aa1ad','#3b414c'],5:['#3cc06a','#145a2c']};
