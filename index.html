@@ -260,6 +260,27 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .du-pair.draw .du-mid::before{content:'무승부';font-weight:900;color:var(--muted)}
 @keyframes punch{0%{transform:none}40%{transform:translateX(var(--px,24px)) scale(1.12)}100%{transform:none}}
 .du-s.r{--px:-24px}
+/* lotto */
+.lt-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:6px}
+@media(max-width:620px){.lt-grid{grid-template-columns:repeat(5,1fr)}}
+.lball{position:relative;display:inline-grid;place-items:center;width:42px;height:42px;margin:0 auto;border-radius:50%;font-weight:900;font-size:15px;color:#222;border:none;cursor:pointer;font-family:inherit;
+  background:radial-gradient(circle at 50% 50%,#fff 0 52%,transparent 54%),radial-gradient(circle at 32% 30%,#fff 0,var(--c1) 30%,var(--c2) 100%);box-shadow:0 3px 6px rgba(0,0,0,.4)}
+.lball.b1{--c1:#f6c22c;--c2:#7a5a00}.lball.b2{--c1:#3f8ff0;--c2:#0c3a7a}.lball.b3{--c1:#ef4b5a;--c2:#7a1520}.lball.b4{--c1:#9aa1ad;--c2:#3b414c}.lball.b5{--c1:#3cc06a;--c2:#145a2c}
+button.lball.active{outline:3px solid var(--gold);outline-offset:2px;transform:scale(1.08)}
+.lball .cnt{right:-4px;top:-6px}
+.lball.mini{width:26px;height:26px;font-size:11px;margin:0 2px;cursor:default;vertical-align:middle}
+.lball.mini.new{outline:2px solid var(--gold)}
+.lball.dim{opacity:.45}.lball.hitb{outline:2px solid var(--green)}
+.lball.huge{width:92px;height:92px;font-size:38px;cursor:default}
+.lball.pop{animation:capPop .5s ease-out,cheer 1s .5s ease-in-out infinite}
+.lt-machine{position:relative;display:flex;flex-direction:column;align-items:center;margin-top:8px;padding:10px;border-radius:18px;background:radial-gradient(ellipse at 50% 30%,#2b2050,#130e24 75%)}
+.lt-machine canvas{display:block}
+.lt-out{min-height:10px;margin-top:-10px;position:relative}
+.lt-heat{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-top:8px}
+@media(max-width:620px){.lt-heat{grid-template-columns:repeat(5,1fr)}}
+.hc2{text-align:center;font-size:11px;padding:4px 0;border-radius:8px;background:var(--card2)}
+.hc2 i{display:block;font-style:normal;color:var(--gold)}
+.hc2.hit{outline:2px solid var(--gold)}
 /* shell game */
 .sh-table{position:relative;height:250px;margin:6px 0 12px;border-radius:18px;background:radial-gradient(ellipse at 50% 60%,#7a4a22 0%,#5a3518 70%,#3f240f 100%);border:6px solid #2b1a0b;box-shadow:inset 0 0 40px rgba(0,0,0,.45);overflow:hidden}
 .sh-cap{position:absolute;left:0;right:0;top:10px;text-align:center;font-weight:900;font-size:17px;color:#ffe9b8;text-shadow:0 2px 4px #000;z-index:3}
@@ -408,6 +429,7 @@ const GAMES = {
   ,roulette:{ name:'룰렛', icon:'🎡', stk:'excited', desc:'유럽식 룰렛(0~36). 색·홀짝·낮음/높음·구간·숫자에 걸어 결과를 맞혀요. 항목마다 하나씩, 여러 항목에 동시에 걸 수 있어요. 0이 나오면 숫자 0 외에는 모두 실패!' }
   ,dice:{ name:'주사위 홀짝', icon:'🎲', stk:'proud', desc:'주사위 2개를 굴려 합이 홀수일지 짝수일지 맞혀요. 맞히면 건 금액의 2배(원금 포함)를 받아요. 홀·짝 확률은 각각 50%!' }
   ,shell:{ name:'햄찌 야바위', icon:'🐹', stk:'nervous', desc:'해바라기씨를 문 햄스터를 2초간 보여준 뒤 눈으로 못 따라갈 속도로 섞어요. 섞기가 끝나면 씨앗을 문 햄스터를 골라요. 맞히면 건 금액의 3배(원금 포함)!' }
+  ,lotto:{ name:'숫자 추첨', icon:'🔮', stk:'heartwave', desc:'1~20 공 중 추첨기에서 나올 숫자를 맞혀요. 숫자를 1~3개 고르고 숫자마다 같은 금액을 걸어요. 고른 숫자가 나오면 숫자당 금액의 20배를 받아요!' }
 };
 // 경주 캐릭터 20종 (이미지 순서와 같음)
 const AVATAR_NAMES=['햄찌','레드','블루','그린','옐로','리본','신사','셰프','공룡','천사','마법사','탐정','기사','스포츠','시크','딸기','꿀벌','마도로스','털모자','임금님'];
@@ -500,6 +522,9 @@ function validate(type,d,params){
     case 'pd': return (d.c==='C'||d.c==='B')?{c:d.c}:null;
     case 'race': { const h=Math.floor(Number(d.h)), a=toAmt(d.a); return (h>=0&&h<RN&&a!==null&&a>0)?{h,a}:null; }
     case 'duel': { const a=toAmt(d.a); return (HANDS[d.r]&&a!==null)?{r:d.r,a}:null; }
+    case 'lotto': { const a=toAmt(d.a); if(!Array.isArray(d.nums)||a===null||a<=0) return null;
+      const nums=[...new Set(d.nums.map(x=>Math.floor(Number(x))))].filter(x=>x>=1&&x<=20).sort((x,y)=>x-y);
+      return (nums.length>=1&&nums.length<=3&&nums.length===d.nums.length)?{nums,a}:null; }
     case 'shell': { const a=toAmt(d.a), k=Math.floor(Number(d.k)); return (k>=0&&k<=2&&a!==null&&a>0)?{k,a}:null; }
     case 'dice': { const a=toAmt(d.a); return ((d.c==='O'||d.c==='E')&&a!==null&&a>0)?{c:d.c,a}:null; }
     case 'roulette': {
@@ -575,6 +600,11 @@ function resolve(type,params,subs){
     });
     return { deltas, detail:{ rows } };
   }
+  if(type==='lotto'){
+    const n=1+Math.floor(Math.random()*20);
+    const rows=Object.entries(subs).map(([id,s])=>{ const hit=s.nums.includes(n), cost=s.a*s.nums.length, dv=hit?s.a*20-cost:-cost; add(id,dv); return { id, nums:s.nums, a:s.a, hit, d:dv }; }).sort((x,y)=>y.d-x.d);
+    return { deltas, detail:{ n, rows, seed:Math.floor(Math.random()*2147483647) } };
+  }
   if(type==='shell'){
     const ans=Math.floor(Math.random()*3);   // 정답은 마감 후에 결정 → 섞는 장면으로는 알 수 없음 (정확히 1/3)
     const rows=Object.entries(subs).map(([id,s])=>{ const win=s.k===ans, dv=win?s.a*2:-s.a; add(id,dv); return { id, k:s.k, a:s.a, win, d:dv }; }).sort((x,y)=>y.d-x.d);
@@ -608,6 +638,7 @@ function betTotal(type,d){
   if(!d) return 0;
   if(type==='auction') return d.bid||0;
   if(type==='race'||type==='duel'||type==='dice'||type==='shell') return d.a||0;
+  if(type==='lotto') return (d.a||0)*((d.nums||[]).length);
   if(type==='roulette') return Object.values(d.bets||{}).reduce((t,b)=>t+(Number(b.a)||0),0);
   return 0;
 }
@@ -615,6 +646,7 @@ function betTotal(type,d){
 function clampMove(type,mv,money){
   if(!mv) return mv; money=Math.max(0,Math.floor(money));
   if(type==='auction') mv.bid=Math.min(mv.bid,money);
+  if(type==='lotto'&&mv.a*mv.nums.length>money){ mv.a=Math.floor(money/mv.nums.length); if(mv.a<1){ mv.nums=mv.nums.slice(0,1); mv.a=Math.max(1,money); } }
   if(type==='race'||type==='dice'||type==='shell') mv.a=Math.max(1,Math.min(mv.a,money));
   if(type==='duel') mv.a=Math.min(mv.a,money);
   if(type==='roulette'){ const tot=betTotal(type,mv);
@@ -637,6 +669,7 @@ function botMove(type,money,params){
         bets[k]={ v, a:botAmount(money,k==='num'?0.02:0.06,k==='num'?0.08:0.22,100) }; }
       return { bets };
     }
+    case 'lotto': { const k=1+Math.floor(Math.random()*3); return { nums:shuffle(Array.from({length:20},(_,i)=>i+1)).slice(0,k).sort((x,y)=>x-y), a:botAmount(money,0.03,0.12,100) }; }
     case 'shell': return { k: Math.floor(Math.random()*3), a: botAmount(money,0.08,0.35,100) };
     case 'dice': return { c: Math.random()<0.5?'O':'E', a: botAmount(money,0.08,0.4,100) };
     case 'duel': return { r: randHand(), a: Math.random()<0.15?0:botAmount(money,0.05,0.35,100) };
@@ -665,7 +698,7 @@ let clockOffset=0, mySub={round:-1,data:null}, lastKey='', SEL={}, kicked=false,
 /* ================= 방장(호스트) ================= */
 function newState(code,title,hostPid,hostName){
   return { code, title, hostId:hostPid, phase:'lobby', round:0,
-    settings:{ startMoney:10000, rounds:5, timer:40, fee:1000, pdStake:2000, horses:6, rlTime:60, diceTime:20, shellTime:5 },
+    settings:{ startMoney:10000, rounds:5, timer:40, fee:1000, pdStake:2000, horses:6, rlTime:60, diceTime:20, shellTime:5, lottoTime:20 },
     players:{ [hostPid]:{ name:hostName, money:10000, online:true, last:0, av:Math.floor(Math.random()*PLAYER_AV.length) } },
     game:null, result:null };
 }
@@ -718,7 +751,7 @@ function hSettings(k,v){
   const st=HOST.state; if(st.phase!=='lobby') return;
   if(k==='title'){ st.title=String(v).trim().slice(0,30)||'머니 서바이벌'; return changed(); }
   if(k==='bots'){ setBots(Math.min(9,Math.max(1,Math.floor(Number(v))||1))); return changed(); }
-  const lim={ startMoney:[100,1e12], rounds:[1,30], timer:[10,300], fee:[0,1e12], pdStake:[0,1e12], horses:[2,AVATAR_NAMES.length], rlTime:[5,300], diceTime:[5,300], shellTime:[3,60] }[k];
+  const lim={ startMoney:[100,1e12], rounds:[1,30], timer:[10,300], fee:[0,1e12], pdStake:[0,1e12], horses:[2,AVATAR_NAMES.length], rlTime:[5,300], diceTime:[5,300], shellTime:[3,60], lottoTime:[5,300] }[k];
   if(!lim) return;
   let n=Math.floor(Number(v)); if(!Number.isFinite(n)) return changed();
   n=Math.min(lim[1],Math.max(lim[0],n)); st.settings[k]=n; changed();
@@ -737,9 +770,9 @@ function hStartRound(type){
   st.round+=1;
   if(type==='shell'){ params.seed=Math.floor(Math.random()*2147483647); params.start0=Math.floor(Math.random()*3);
     params.show=2000; params.shuf=5000+Math.floor(Math.random()*3000); params.pick=(st.settings.shellTime||5)*1000; params.t0=Date.now()+600; }
-  const secs=type==='roulette'?(st.settings.rlTime||60):type==='dice'?(st.settings.diceTime||20):type==='shell'?(params.show+params.shuf+params.pick+600)/1000:st.settings.timer;
+  const secs=type==='roulette'?(st.settings.rlTime||60):type==='dice'?(st.settings.diceTime||20):type==='shell'?(params.show+params.shuf+params.pick+600)/1000:type==='lotto'?(st.settings.lottoTime||20):st.settings.timer;
   st.game={ type, params, eligible:online, submitted:{}, deadline:Date.now()+secs*1000 };
-  if(type==='roulette'||type==='dice') st.game.stats={};
+  if(type==='roulette'||type==='dice'||type==='lotto') st.game.stats={};
   st.result=null; HOST.subs={}; st.phase='play'; changed();
   scheduleBots();
 }
@@ -780,6 +813,7 @@ function hSubmit(pid,data){
   if(betTotal(g.type,clean)>Math.max(0,st.players[pid].money)) return; // 보유금보다 많이 걸 수 없음
   HOST.subs[pid]={...clean,ts:Date.now()}; g.submitted[pid]=true;
   if(g.type==='dice') g.stats[clean.c]=(g.stats[clean.c]||0)+1;
+  if(g.type==='lotto') clean.nums.forEach(n=>g.stats[n]=(g.stats[n]||0)+1);
   if(g.type==='roulette') for(const [k,b] of Object.entries(clean.bets)){ const key=k+':'+b.v; g.stats[key]=(g.stats[key]||0)+1; } changed(); checkAllIn();
 }
 function checkAllIn(){
@@ -799,6 +833,7 @@ function hClose(){
     if(k) loans[id]=k*unit; }
   st.result={ type:g.type, round:st.round, detail:res.detail, deltas:res.deltas, loans };
   if(g.type==='roulette') st.rlHist=[res.detail.n,...(st.rlHist||[])].slice(0,20);
+  if(g.type==='lotto') st.lottoHist=[res.detail.n,...(st.lottoHist||[])].slice(0,20);
   if(g.type==='dice') st.diceHist=[[res.detail.d1,res.detail.d2],...(st.diceHist||[])].slice(0,20);
   st.game=null; st.phase='result'; changed();
 }
@@ -960,7 +995,7 @@ function updateDynamic(){
   if(S.phase==='play'){
     const g=S.game, cnt=Object.keys(g.submitted).length, sc=$('#subcount');
     if(sc) sc.textContent=`${cnt}/${g.eligible.length}명 제출`;
-    if(g.type==='roulette'||g.type==='dice') document.querySelectorAll('[data-ck]').forEach(e=>{ const c=(g.stats||{})[e.dataset.ck]; e.textContent=c?c+'명':''; });
+    if(g.type==='roulette'||g.type==='dice'||g.type==='lotto') document.querySelectorAll('[data-ck]').forEach(e=>{ const c=(g.stats||{})[e.dataset.ck]; e.textContent=c?c+'명':''; });
     tick();
   }
 }
@@ -981,7 +1016,7 @@ function stageHTML(){
   }
   return '';
 }
-const SETTINGS=[['startMoney','시작 금액'],['rounds','라운드 수'],['timer','제한 시간(초)'],['fee','유일 숫자 참가비'],['pdStake','협력/배신 기본 판돈'],['horses','경마 출전 수 (2~20)'],['rlTime','룰렛 베팅 시간(초)'],['diceTime','주사위 홀짝 선택 시간(초)'],['shellTime','야바위 선택 시간(초)']];
+const SETTINGS=[['startMoney','시작 금액'],['rounds','라운드 수'],['timer','제한 시간(초)'],['fee','유일 숫자 참가비'],['pdStake','협력/배신 기본 판돈'],['horses','경마 출전 수 (2~20)'],['rlTime','룰렛 베팅 시간(초)'],['diceTime','주사위 홀짝 선택 시간(초)'],['shellTime','야바위 선택 시간(초)'],['lottoTime','숫자 추첨 선택 시간(초)']];
 function lobbyHTML(){
   const st=S.settings;
   const botCount=Object.values(S.players).filter(p=>p.bot).length;
@@ -1020,6 +1055,7 @@ function describeSub(type,d){
     case 'pd': return d.c==='C'?'<b>🤝 협력</b>':'<b>🗡️ 배신</b>';
     case 'race': return `<b>${S.game.params.runners[d.h].name}</b>에 <b>${fmt(d.a)}</b>원`;
     case 'duel': return `<b>${HANDS[d.r]}</b> · <b>${fmt(d.a)}</b>원`;
+    case 'lotto': return `숫자 <b>${d.nums.join(', ')}</b> · 숫자당 <b>${fmt(d.a)}</b>원 (총 ${fmt(d.a*d.nums.length)}원)`;
     case 'shell': return `<b>${d.k+1}번 자리</b>에 <b>${fmt(d.a)}</b>원`;
     case 'dice': return `<b>${d.c==='O'?'홀':'짝'}</b>에 <b>${fmt(d.a)}</b>원`;
     case 'roulette': return Object.entries(d.bets).map(([k,b])=>`<b>${rlOptName(k,b.v)}</b> ${fmt(b.a)}원`).join(' · ');
@@ -1052,6 +1088,10 @@ function inputHTML(g){
     case 'auction': return `${amtInput('입찰 금액')}<button class="btn big gold" id="submitBtn">입찰하기</button>`;
     case 'pd': return `<div class="pdgrid"><button class="btn pdbtn" data-pd="C">${stk('hugHeart','pdimg')}🤝 협력<small>함께 이득을 노린다</small></button><button class="btn pdbtn" data-pd="B">${stk('angry','pdimg')}🗡️ 배신<small>혼자 크게 먹는다</small></button></div>`;
     case 'race': return `<div class="horses">${g.params.runners.map((h,i)=>`<button class="btn horse-opt" data-grp="h" data-sel="${i}"><img src="${AVATAR_SRC[h.av]}" alt=""><span class="ho-t"><b>${i+1}번 ${esc(h.name)}</b><span class="muted">배당 <b class="odds">${h.odds}배</b> · 우승 확률 ${Math.max(1,Math.round(h.p*100))}%</span></span></button>`).join('')}</div>${amtInput('걸 금액')}<button class="btn big gold" id="submitBtn">베팅하기</button>`;
+    case 'lotto': return `${lottoHistHTML()}<div class="lt-grid">${Array.from({length:20},(_,i)=>i+1).map(n=>`<button class="lball b${lottoBand(n)}" data-ln="${n}">${n}<i class="cnt" data-ck="${n}"></i></button>`).join('')}</div>
+        <div class="muted rl-tip">숫자를 <b>1~3개</b> 고르세요 (다시 누르면 취소) · 적중 시 숫자당 금액의 <b>20배</b></div>
+        <label>숫자 하나당 금액 (총액은 보유금 <b>${fmt(myMoney())}원</b>까지)</label><div class="amtrow"><input type="number" id="amt" min="1" inputmode="numeric" placeholder="숫자당 금액"><button class="btn sm" data-allin="lotto">최대</button></div>
+        <div class="rl-total" id="lttotal"></div><button class="btn big gold" id="submitBtn">베팅하기</button>`;
     case 'shell': return `<div class="muted rl-tip">섞는 동안 금액을 미리 입력해 두세요! 섞기가 끝나면 햄스터를 눌러 고르고 <b>베팅하기</b>.</div>${amtInput('걸 금액')}<button class="btn big gold" id="submitBtn">베팅하기</button>`;
     case 'dice': return `${diceHistHTML()}<div class="dc-pick">
         <button class="btn dc-btn odd" data-grp="c" data-sel="O"><span class="dc-big">홀</span><small>3·5·7·9·11</small><i class="cnt" data-ck="O"></i></button>
@@ -1062,7 +1102,7 @@ function inputHTML(g){
   }
   return '';
 }
-const HINT={ shell:'씨앗을 문 햄스터를 고르고 1원 이상 걸어주세요', dice:'홀 또는 짝을 고르고 1원 이상 걸어주세요', roulette:'걸 항목을 고르고 각각 1원 이상 입력하세요', unique:'숫자를 하나 골라주세요', auction:'입찰 금액을 입력하세요 (0 이상)', race:'말을 고르고 1원 이상 걸어주세요', duel:'가위·바위·보를 고르고 금액을 입력하세요' };
+const HINT={ lotto:'숫자를 1~3개 고르고 숫자당 1원 이상 입력하세요', shell:'씨앗을 문 햄스터를 고르고 1원 이상 걸어주세요', dice:'홀 또는 짝을 고르고 1원 이상 걸어주세요', roulette:'걸 항목을 고르고 각각 1원 이상 입력하세요', unique:'숫자를 하나 골라주세요', auction:'입찰 금액을 입력하세요 (0 이상)', race:'말을 고르고 1원 이상 걸어주세요', duel:'가위·바위·보를 고르고 금액을 입력하세요' };
 function bindStage(){
   const st=$('#stage');
   st.onclick=e=>{
@@ -1074,7 +1114,8 @@ function bindStage(){
     if(t.dataset.game) return hStartRound(t.dataset.game);
     if(t.dataset.grp){ st.querySelectorAll(`[data-grp="${t.dataset.grp}"]`).forEach(b=>b.classList.toggle('active',b===t)); SEL[t.dataset.grp]=t.dataset.sel; return; }
     if(t.dataset.pd) return submit({c:t.dataset.pd});
-    if(t.dataset.allin){ const a=$('#amt'); if(a) a.value=myMoney(); return; }
+    if(t.dataset.allin){ const a=$('#amt'); if(a) a.value=t.dataset.allin==='lotto'?Math.floor(myMoney()/Math.max(1,(SEL.ln||[]).length)):myMoney(); lottoTotal(); return; }
+    if(t.dataset.ln) return lottoPick(+t.dataset.ln);
     if(t.dataset.rk) return rlPick(t.dataset.rk,t.dataset.rv);
     if(t.dataset.rlx) return rlPick(t.dataset.rlx,null);
     if(t.id==='submitBtn') return submitForm();
@@ -1084,7 +1125,7 @@ function bindStage(){
 }
 function submitForm(){
   const g=S.game, a=$('#amt')?$('#amt').value:'';
-  const d={ unique:{n:SEL.n}, auction:{bid:a}, race:{h:SEL.h,a}, duel:{r:SEL.r,a}, roulette:{bets:rlSlipBets()}, dice:{c:SEL.c,a}, shell:{k:SEL.k,a} }[g.type];
+  const d={ unique:{n:SEL.n}, auction:{bid:a}, race:{h:SEL.h,a}, duel:{r:SEL.r,a}, roulette:{bets:rlSlipBets()}, dice:{c:SEL.c,a}, shell:{k:SEL.k,a}, lotto:{nums:(SEL.ln||[]).slice(),a} }[g.type];
   submit(d);
 }
 function submit(d){
@@ -1109,7 +1150,7 @@ function resultHTML(){
   const ln=Object.entries(r.loans||{});
   const loanHTML=ln.length?`<div class="loanbox">${stk('cryPuddle','mstk')}<div><b>💳 파산!</b> 보유금을 모두 잃어 빚을 졌어요<div class="deltas">${ln.map(([id,a])=>`<span class="pill">${nameOf(id)} <b class="down">빚 +${fmt(a)}</b></span>`).join('')}</div></div></div>`:'';
   return `<div class="ghead"><div class="gicon">${gimg(G)}</div><div><div class="gname">라운드 ${r.round} 결과 · ${G.name}</div></div></div>
-    <div id="rbody">${resultBody(r)}</div><div id="reveal" class="hidden">${r.type==='race'?raceReveal(r.detail):r.type==='roulette'?rlReveal(r.detail):r.type==='dice'?diceReveal(r.detail):r.type==='shell'?shellReveal(r.detail):`<div class="sec">📋 결과 요약</div>${resultBodyOld(r)}`}${loanHTML}${deltas}${next}</div>`;
+    <div id="rbody">${resultBody(r)}</div><div id="reveal" class="hidden">${r.type==='race'?raceReveal(r.detail):r.type==='roulette'?rlReveal(r.detail):r.type==='dice'?diceReveal(r.detail):r.type==='shell'?shellReveal(r.detail):r.type==='lotto'?lottoReveal(r.detail):`<div class="sec">📋 결과 요약</div>${resultBodyOld(r)}`}${loanHTML}${deltas}${next}</div>`;
 }
 const SHOW_TYPES=['unique','auction','pd','duel'];
 function resultBody(r){ return SHOW_TYPES.includes(r.type)?showStage(r):resultBodyOld(r); }
@@ -1151,6 +1192,7 @@ function resultBodyOld(r){
   if(r.type==='roulette') return rlStageHTML(r.detail);
   if(r.type==='dice') return diceStageHTML(r.detail);
   if(r.type==='shell') return shellResultStage(r.detail);
+  if(r.type==='lotto') return lottoStageHTML(r.detail);
   if(r.type==='duel'){
     const face=dv=>dv>0?'excited':dv<0?'cry':'shrug';
     const side=(h,a,m)=>`${HANDS[h]} · ${fmt(a)}원${m?' <span class="muted">(미제출)</span>':''}`;
@@ -1174,7 +1216,9 @@ function afterStage(){
   if(S.phase==='result'&&S.result.type==='roulette') runRoulette();
   if(S.phase==='result'&&S.result.type==='dice') runDice();
   if(S.phase==='result'&&S.result.type==='shell') runShellReveal();
+  if(S.phase==='result'&&S.result.type==='lotto') runLotto();
   if(S.phase==='play'&&S.game.type==='shell') runShellPlay();
+  if(S.phase==='play'&&S.game.type==='lotto'&&$('#lttotal')){ SEL.ln=[]; lottoTotal(); const a=$('#amt'); if(a) a.oninput=lottoTotal; }
   if(S.phase==='play'&&S.game.type==='roulette'&&$('#rlslip')){ SEL.rl={}; rlRenderSlip(); }
 }
 /* ===== 결과 연출 (유일 숫자 / 경매 / 협력·배신 / 대결) ===== */
@@ -1362,6 +1406,100 @@ function runRace(){
   }
   requestAnimationFrame(frame);
 }
+/* ===== 숫자 추첨 화면 ===== */
+const lottoBand=n=>Math.ceil(n/4); // 1~4 노랑, 5~8 파랑, 9~12 빨강, 13~16 회색, 17~20 초록
+const LBAND={1:['#f6c22c','#7a5a00'],2:['#3f8ff0','#0c3a7a'],3:['#ef4b5a','#7a1520'],4:['#9aa1ad','#3b414c'],5:['#3cc06a','#145a2c']};
+const lballHTML=(n,cls)=>`<span class="lball b${lottoBand(n)} ${cls||''}">${n}</span>`;
+function lottoHistHTML(){ const h=S.lottoHist||[]; return `<div class="rl-hist"><span class="muted">최근 결과</span>${h.length?h.map((n,i)=>lballHTML(n,'mini'+(i===0?' new':''))).join(''):'<span class="muted">아직 없음</span>'}</div>`; }
+function lottoPick(n){
+  SEL.ln=SEL.ln||[]; const i=SEL.ln.indexOf(n);
+  if(i>=0) SEL.ln.splice(i,1); else { if(SEL.ln.length>=3) return toast('숫자는 최대 3개까지 고를 수 있어요'); SEL.ln.push(n); }
+  SEL.ln.sort((a,b)=>a-b);
+  document.querySelectorAll('[data-ln]').forEach(b=>b.classList.toggle('active',SEL.ln.includes(+b.dataset.ln)));
+  lottoTotal();
+}
+function lottoTotal(){ const e=$('#lttotal'); if(!e) return; const k=(SEL.ln||[]).length, a=Math.max(0,Math.floor(Number(($('#amt')||{}).value)||0)), have=myMoney(), tot=a*k;
+  e.innerHTML=k?`고른 숫자 <b>${SEL.ln.join(', ')}</b> · 총 베팅 <b class="${tot>have?'down':''}">${fmt(tot)}원</b> (${fmt(a)} × ${k}) / 보유금 ${fmt(have)}원 · 적중 시 <b class="up">${fmt(a*20)}원</b> 받음${tot>have?' · <b class="down">보유금을 넘었어요!</b>':''}`:'숫자를 골라주세요'; }
+function lottoStageHTML(d){
+  return `<div class="lt-machine"><canvas id="ltcv"></canvas><div class="lt-out" id="ltout"></div></div>
+    <div class="evcap" id="ltcap">🌀 추첨기가 돌아갑니다…</div><button class="btn sm ghost" id="skipLotto">결과 바로 보기 ⏭</button>`;
+}
+function lottoReveal(d){
+  const winners=d.rows.filter(x=>x.hit), cnt={}; d.rows.forEach(x=>x.nums.forEach(n=>cnt[n]=(cnt[n]||0)+1));
+  const party=winners.length?`<div class="rl-party">${winners.slice(0,8).map(x=>`<div class="rl-w"><img class="rl-wav" src="${PLAYER_AV[avIdx(x.id)]}" alt=""><div>${nameOf(x.id)}</div><b class="up">${signed(x.d)}</b></div>`).join('')}</div>`
+    :`${stk('cryPuddle')}<div class="muted" style="text-align:center">아무도 맞히지 못했어요!</div>`;
+  return `<div class="announce">${winners.length?stk('sparkle','rx bounce'):''}추첨된 숫자는<big>${lballHTML(d.n,'huge')}</big></div>${party}
+    ${d.rows.length?`<div class="sec">베팅 내역</div><div class="list">${d.rows.map(x=>`<div class="li ${x.hit?'win':''}"><span>${nameOf(x.id)} · ${x.nums.map(n=>lballHTML(n,'mini'+(n===d.n?' hitb':' dim'))).join('')} <span class="muted">숫자당 ${fmt(x.a)}원</span></span><b class="${x.d>0?'up':'down'}">${signed(x.d)}</b></div>`).join('')}</div>`:'<p class="muted">아무도 베팅하지 않았어요.</p>'}
+    <div class="sec">숫자별 참여 현황</div><div class="lt-heat">${Array.from({length:20},(_,i)=>i+1).map(n=>`<span class="hc2 ${n===d.n?'hit':''}">${lballHTML(n,'mini')}<i>${cnt[n]||0}명</i></span>`).join('')}</div>
+    ${lottoHistHTML()}`;
+}
+function runLotto(){
+  const d=S.result.detail, key=lastKey, rnd=mulberry32(d.seed), cv=$('#ltcv'), out=$('#ltout');
+  const W=Math.min(420,cv.parentElement.clientWidth-8), H=Math.round(W*0.95), dpr=window.devicePixelRatio||1;
+  cv.width=W*dpr; cv.height=H*dpr; cv.style.width=W+'px'; cv.style.height=H+'px'; const c=cv.getContext('2d'); c.scale(dpr,dpr);
+  const cx=W/2, cy=H*0.43, R=W*0.37, r=Math.max(10,W*0.034), D=5+rnd()*3;
+  const balls=Array.from({length:20},(_,i)=>{ const a=rnd()*Math.PI*2, rr=rnd()*(R-r*2); return { n:i+1, x:cx+Math.cos(a)*rr, y:cy+R*0.35+Math.abs(Math.sin(a))*R*0.4*rnd(), vx:(rnd()-0.5)*80, vy:(rnd()-0.5)*80 }; });
+  const win=balls[d.n-1]; let sim=0, last=null, done=false, cap0=null; RACING=true; updateDynamic();
+  const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+  function step(dt){
+    const spin=sim<D?Math.min(1,sim/0.8):Math.max(0.15,1-(sim-D)/1.5);
+    for(const b of balls){ if(b===win&&cap0) continue;
+      const dx=b.x-cx, dy=b.y-cy, dist=Math.hypot(dx,dy)||1;
+      b.vx+=(-dy/dist)*260*spin*dt; b.vy+=(dx/dist)*260*spin*dt;            // 약한 회오리
+      b.vy+=700*dt;                                                         // 중력
+      if(b.y>cy+R*0.25&&rnd()<0.5) b.vy-=(2600+rnd()*2600)*spin*dt;          // 바닥에서 불어 올리는 바람
+      b.vx+=(rnd()-0.5)*2200*spin*dt; b.vy+=(rnd()-0.5)*1200*spin*dt;       // 난기류
+      const sp=Math.hypot(b.vx,b.vy), mx=R*2.6; if(sp>mx){ b.vx*=mx/sp; b.vy*=mx/sp; }
+      b.vx*=0.992; b.vy*=0.992;
+      b.x+=b.vx*dt; b.y+=b.vy*dt;
+      const nx=b.x-cx, ny=b.y-cy, nd=Math.hypot(nx,ny);
+      if(nd>R-r){ const ux=nx/nd, uy=ny/nd, vn=b.vx*ux+b.vy*uy; if(vn>0){ b.vx-=1.8*vn*ux; b.vy-=1.8*vn*uy; } b.x=cx+ux*(R-r); b.y=cy+uy*(R-r); } }
+    for(let i=0;i<20;i++) for(let j=i+1;j<20;j++){ const a=balls[i], b=balls[j]; if((a===win||b===win)&&cap0) continue;
+      const dx=b.x-a.x, dy=b.y-a.y, dd=Math.hypot(dx,dy); if(dd>0&&dd<2*r){ const ux=dx/dd, uy=dy/dd, ov=(2*r-dd)/2; a.x-=ux*ov; a.y-=uy*ov; b.x+=ux*ov; b.y+=uy*ov;
+        const rv=(b.vx-a.vx)*ux+(b.vy-a.vy)*uy; if(rv<0){ a.vx+=rv*ux; a.vy+=rv*uy; b.vx-=rv*ux; b.vy-=rv*uy; } } }
+  }
+  function drawBall(b,scale,glow){
+    const [col,dark]=LBAND[lottoBand(b.n)], rr=r*(scale||1);
+    if(glow){ c.shadowColor='rgba(255,220,90,.95)'; c.shadowBlur=22; }
+    const g=c.createRadialGradient(b.x-rr*.35,b.y-rr*.35,rr*.1,b.x,b.y,rr); g.addColorStop(0,'#fff'); g.addColorStop(.25,col); g.addColorStop(1,dark);
+    c.fillStyle=g; c.beginPath(); c.arc(b.x,b.y,rr,0,Math.PI*2); c.fill(); c.shadowBlur=0;
+    c.fillStyle='#fff'; c.beginPath(); c.arc(b.x,b.y,rr*.58,0,Math.PI*2); c.fill();
+    c.fillStyle='#222'; c.font=`900 ${Math.round(rr*.78)}px Pretendard,sans-serif`; c.textAlign='center'; c.textBaseline='middle'; c.fillText(b.n,b.x,b.y+1);
+  }
+  const exitY=cy+R, trayY=H-r*2.2;
+  function draw(){
+    c.clearRect(0,0,W,H);
+    // 받침대 & 배출구
+    c.fillStyle='#3a2a52'; c.fillRect(cx-r*1.5,exitY-4,r*3,trayY-exitY+r); 
+    c.fillStyle='#22183a'; c.beginPath(); c.roundRect(cx-W*0.3,trayY-r*1.4,W*0.6,r*2.8,12); c.fill();
+    // 돔
+    const gg=c.createRadialGradient(cx-R*.3,cy-R*.4,R*.1,cx,cy,R); gg.addColorStop(0,'rgba(255,255,255,.16)'); gg.addColorStop(1,'rgba(120,160,255,.06)');
+    c.fillStyle=gg; c.beginPath(); c.arc(cx,cy,R,0,Math.PI*2); c.fill();
+    for(const b of balls) if(!(b===win&&cap0)) drawBall(b);
+    c.strokeStyle='rgba(200,220,255,.55)'; c.lineWidth=4; c.beginPath(); c.arc(cx,cy,R,0,Math.PI*2); c.stroke();
+    c.strokeStyle='rgba(255,255,255,.35)'; c.lineWidth=3; c.beginPath(); c.arc(cx,cy,R-8,Math.PI*1.15,Math.PI*1.45); c.stroke();
+    c.fillStyle='#f5c542'; c.fillRect(cx-r*1.2,exitY-6,r*2.4,8);
+    if(cap0){ const k=Math.min(1,(sim-cap0.t)/1.3), p=ease(k);
+      let x,y; if(k<.5){ const q=ease(k/.5); x=cap0.x+(cx-cap0.x)*q; y=cap0.y+(exitY-cap0.y)*q; } else { const q=ease((k-.5)/.5); x=cx; y=exitY+(trayY-exitY)*q; }
+      win.x=x; win.y=y; drawBall(win,1+p*0.5,k>=1); }
+  }
+  const finish=()=>{ if(done) return; done=true; RACING=false; if(!cap0) cap0={t:sim,x:win.x,y:win.y}; sim=cap0.t+1.4; draw();
+    out.innerHTML=lballHTML(d.n,'huge pop'); burst(out,['✨','🎉','💰'],14);
+    const cp=$('#ltcap'); if(cp) cp.innerHTML=`🎯 추첨된 숫자는 <b>${d.n}</b>!`; const sk=$('#skipLotto'); if(sk) sk.remove();
+    setTimeout(()=>{ if(lastKey!==key) return; const rv=$('#reveal'); if(rv) rv.classList.remove('hidden'); updateDynamic(); },900); };
+  $('#skipLotto').onclick=finish;
+  function frame(now){
+    if(done||lastKey!==key||!document.body.contains(cv)) return;
+    if(last===null) last=now; let el=Math.min(0.05,(now-last)/1000); last=now;
+    while(el>0){ const h=Math.min(1/120,el); step(h); sim+=h; el-=h; }
+    if(!cap0&&sim>=D){ cap0={t:sim,x:win.x,y:win.y}; const cp=$('#ltcap'); if(cp) cp.textContent='🔮 공 하나가 빠져나옵니다…!'; }
+    else if(!cap0&&sim>D*0.6){ const cp=$('#ltcap'); if(cp&&cp.textContent.indexOf('두근')<0) cp.textContent='🌀 두근두근… 어떤 숫자가 나올까?'; }
+    draw();
+    if(cap0&&sim>=cap0.t+1.4) finish(); else requestAnimationFrame(frame);
+  }
+  draw(); requestAnimationFrame(frame);
+}
+
 /* ===== 햄찌 야바위 화면 ===== */
 const SEED_SVG=`<svg viewBox="0 0 40 60" class="seed"><path d="M20 2C35 15 36 41 20 58C4 41 5 15 20 2Z" fill="#2a2a2e" stroke="#0d0d10" stroke-width="2"/><path d="M20 7V53" stroke="#efe8d0" stroke-width="3.5" stroke-linecap="round"/><path d="M12 15Q11 31 14 46M28 15Q29 31 26 46" stroke="#cfc6a8" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>`;
 const shellNow=g=>(Date.now()-clockOffset)-g.params.t0;
