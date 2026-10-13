@@ -201,6 +201,7 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .center{text-align:center;padding:40px 16px}
 /* auction tie lottery */
 .au-bid.tie{outline:2px dashed #ff8a95}
+.rx-row.tie{outline:2px dashed #ff8a95;border-radius:10px}
 .au-bid.tie::after{content:'동점';position:absolute;left:-6px;top:-10px;font-size:11px;font-weight:900;background:#ff5d6c;color:#fff;padding:1px 6px;border-radius:6px}
 .lotto{position:relative;display:none;margin:4px 0 14px;padding:14px;border-radius:16px;background:linear-gradient(180deg,#2b1a3a,#1a1226);border:2px solid #7b4bb0;text-align:center}
 .lotto.show{display:block;animation:capPop .4s ease-out}
@@ -232,6 +233,7 @@ label.chk input{width:18px;height:18px;margin-top:2px;accent-color:var(--gold)}
 .mn small.debt{display:block;font-size:11px;font-weight:700;color:var(--red);line-height:1.1}
 .amtrow{display:flex;gap:8px}.amtrow input{flex:1}
 .rl-total{font-size:13px;color:var(--muted);text-align:right;margin-top:2px}
+.loanbox.repay{background:#14281c;border-color:#2c6b44}
 .loanbox{display:flex;align-items:center;gap:10px;margin:12px 0;padding:10px 14px;background:#2a1418;border:1px solid #6b2c36;border-radius:12px}
 .calc{display:block;font-size:11px;color:var(--muted);font-weight:500}
 .li .fr{display:flex;align-items:center;gap:10px;text-align:right}
@@ -912,18 +914,19 @@ const PK_ROWS=8, PK_MULT=[10,3,1.3,0.7,0.35,0.7,1.3,3,10],  // 플링코 회수�
   PK_MAXBALL=10;
 const pkSlot=path=>{ let k=0; for(let i=0;i<PK_ROWS;i++) if(path>>i&1) k++; return k; };
 // 반응속도: 판정 기준
-const REACT_TIE=10, REACT_MIN=100, REACT_WIN=2500;   // 동률 허용(ms) · 비정상 입력 기준(ms) · 신호 후 입력 시간(ms)
+const REACT_MIN=100, REACT_WIN=2500;   // 비정상 입력 기준(ms) · 신호 후 입력 시간(ms)  ※ 1ms까지 같으면 동률 → 랜덤 추첨
 function reactSettle(fee,players,subs){
   const rows=players.map(id=>{ const s=subs[id]; let st='none', ms=null;
     if(s){ if(s.fs) st='fs'; else if(s.early) st='bad'; else if(s.ms<REACT_MIN) st='bad'; else if(s.ms<=REACT_WIN+500){ st='ok'; ms=s.ms; } }
     return { id, st, ms }; });
   const ok=rows.filter(r=>r.st==='ok'), deltas={};
   if(!ok.length) return { deltas, rows, winners:[] };
-  const best=Math.min(...ok.map(r=>r.ms)), winners=ok.filter(r=>r.ms<=best+REACT_TIE).map(r=>r.id);
-  const pot=fee*players.length, share=Math.floor(pot/winners.length);
-  players.forEach(id=>{ const dv=(winners.includes(id)?share:0)-fee; if(dv) deltas[id]=dv; });
-  rows.sort((a,b)=>(a.st==='ok'?0:1)-(b.st==='ok'?0:1)||(a.ms??1e9)-(b.ms??1e9));
-  return { deltas, rows, winners };
+  const best=Math.min(...ok.map(r=>r.ms)), tied=shuffle(ok.filter(r=>r.ms===best).map(r=>r.id));
+  const winner=tied[Math.floor(Math.random()*tied.length)], winners=[winner], tie=tied.length>1?tied:null;   // 완전 동률이면 동률자 중 랜덤 추첨
+  const pot=fee*players.length;
+  players.forEach(id=>{ const dv=(id===winner?pot:0)-fee; if(dv) deltas[id]=dv; });
+  rows.sort((a,b)=>(a.st==='ok'?0:1)-(b.st==='ok'?0:1)||(a.ms??1e9)-(b.ms??1e9)||(a.id===winner?-1:b.id===winner?1:0));
+  return { deltas, rows, winners, tie };
 }
 function minesSettle(fee,players,alive){
   const deltas={}, dead=players.filter(id=>!alive.includes(id));
@@ -1064,6 +1067,7 @@ function redactMoney(src,pid){
   const r=s.result;
   if(r){ r.deltas=r.deltas&&(pid in r.deltas)?{[pid]:r.deltas[pid]}:{};
     if(r.loans) r.loans=(pid in r.loans)?{[pid]:r.loans[pid]}:{};
+    if(r.repaid) r.repaid=(pid in r.repaid)?{[pid]:r.repaid[pid]}:{};
     const d=r.detail||{}; delete d.med;
     const sg=v=>v==null?null:v>0?1e-9:v<0?-1e-9:0;
     const scrub=(o,keys)=>{ if(o&&o.id!==undefined&&o.id!==pid) keys.forEach(k=>{ if(k in o) o[k]=(k==='d'?sg(o[k]):null); }); };
@@ -1341,7 +1345,7 @@ function hClose(){
   const st=HOST.state; if(st.phase!=='play') return;
   if(st.game.type==='chest') st.game.params.layout=HOST.subs.__layout;
   const g=st.game, res=g.type==='react'
-    ?(()=>{ const R=reactSettle(g.params.fee,g.players.filter(id=>st.players[id]),HOST.subs); return { deltas:R.deltas, detail:{ rows:R.rows, winners:R.winners, fee:g.params.fee, n:g.players.length } }; })()
+    ?(()=>{ const R=reactSettle(g.params.fee,g.players.filter(id=>st.players[id]),HOST.subs); return { deltas:R.deltas, detail:{ rows:R.rows, winners:R.winners, tie:R.tie||null, seed:Math.floor(Math.random()*2147483647), fee:g.params.fee, n:g.players.length } }; })()
     :g.type==='bomb'
     ?{ deltas:minesSettle(g.params.fee,g.order.filter(id=>st.players[id]),g.alive.filter(id=>st.players[id])),
        detail:{ order:g.order, alive:g.alive.slice(), elim:g.elim, rounds:g.roundNo, passes:g.passes, fee:g.params.fee } }
@@ -1357,7 +1361,10 @@ function hClose(){
     // 보유금을 모두 잃으면 시작 금액만큼 빚을 지고 계속 진행
     let k=0; while(p.money<=0&&unit>0&&k<1000){ p.money+=unit; p.debt=(p.debt||0)+unit; k++; }
     if(k) loans[id]=k*unit; }
-  st.result={ type:g.type, round:st.round, detail:res.detail, deltas:res.deltas, loans };
+  // 빚 상환: 보유금이 빚보다 많으면 빚을 모두 갚음 (순자산은 그대로, 보유금·빚만 줄어듦)
+  const repaid={};
+  for(const [id,p] of Object.entries(st.players)){ const dt=p.debt||0; if(dt>0&&p.money>dt){ p.money-=dt; p.debt=0; repaid[id]=dt; } }
+  st.result={ type:g.type, round:st.round, detail:res.detail, deltas:res.deltas, loans, repaid };
   if(g.type==='roulette') st.rlHist=[res.detail.n,...(st.rlHist||[])].slice(0,20);
   if(g.type==='lotto') st.lottoHist=[res.detail.ns,...(st.lottoHist||[])].slice(0,20);
   if(g.type==='dice') st.diceHist=[[res.detail.d1,res.detail.d2],...(st.diceHist||[])].slice(0,20);
@@ -1771,9 +1778,11 @@ function resultHTML(){
   const ds=Object.entries(r.deltas).sort((a,b)=>b[1]-a[1]);
   const deltas=ds.length?`<div class="sec">이번 라운드 손익</div><div class="deltas">${ds.map(([id,d])=>`<span class="pill">${nameOf(id)} <b class="${d>0?'up':'down'}">${signed(d)}</b></span>`).join('')}</div>`:'';
   const ln=Object.entries(r.loans||{});
+  const rp=Object.entries(r.repaid||{});
+  const repayHTML=rp.length?`<div class="loanbox repay">${stk('sparkle','mstk')}<div><b>💳 빚 청산!</b> 보유금으로 빚을 모두 갚았어요<div class="deltas">${rp.map(([id,a])=>`<span class="pill">${nameOf(id)} <b class="up">빚 -${fmt(a)} 상환</b></span>`).join('')}</div></div></div>`:'';
   const loanHTML=ln.length?`<div class="loanbox">${stk('cryPuddle','mstk')}<div><b>💳 파산!</b> 보유금을 모두 잃어 빚을 졌어요<div class="deltas">${ln.map(([id,a])=>`<span class="pill">${nameOf(id)} <b class="down">빚 +${fmt(a)}</b></span>`).join('')}</div></div></div>`:'';
   return `<div class="ghead"><div class="gicon">${gimg(G)}</div><div><div class="gname">라운드 ${r.round} 결과 · ${G.name}</div></div></div>
-    <div id="rbody">${resultBody(r)}</div><div id="reveal" class="hidden">${r.type==='race'?raceReveal(r.detail):r.type==='roulette'?rlReveal(r.detail):r.type==='dice'?diceReveal(r.detail):r.type==='shell'?shellReveal(r.detail):r.type==='lotto'?lottoReveal(r.detail):r.type==='plinko'?pkReveal(r.detail):r.type==='mines'?minesReveal(r.detail):r.type==='bomb'?bombReveal(r.detail):r.type==='react'?reactReveal(r.detail):r.type==='chest'?chestReveal(r.detail):`<div class="sec">📋 결과 요약</div>${resultBodyOld(r)}`}${loanHTML}${deltas}${next}</div>`;
+    <div id="rbody">${resultBody(r)}</div><div id="reveal" class="hidden">${r.type==='race'?raceReveal(r.detail):r.type==='roulette'?rlReveal(r.detail):r.type==='dice'?diceReveal(r.detail):r.type==='shell'?shellReveal(r.detail):r.type==='lotto'?lottoReveal(r.detail):r.type==='plinko'?pkReveal(r.detail):r.type==='mines'?minesReveal(r.detail):r.type==='bomb'?bombReveal(r.detail):r.type==='react'?reactReveal(r.detail):r.type==='chest'?chestReveal(r.detail):`<div class="sec">📋 결과 요약</div>${resultBodyOld(r)}`}${loanHTML}${repayHTML}${deltas}${next}</div>`;
 }
 const SHOW_TYPES=['unique','auction','pd','duel'];
 function resultBody(r){ return SHOW_TYPES.includes(r.type)?showStage(r):resultBodyOld(r); }
@@ -2141,7 +2150,7 @@ function reactPlayHTML(){
   const g=S.game, G=GAMES.react, n=g.players.length; R_ME={round:S.round,done:false,res:null}; R_SIGT=null;
   return `<div class="ghead"><div class="gicon">${gimg(G)}</div><div><div class="gname">라운드 ${S.round} · ${G.name}</div>
       <div class="gdesc">참가비 <b>${fmt(g.params.fee)}원</b> × ${n}명 = 판돈 <b class="up">${fmt(g.params.fee*n)}원</b><br>
-      <span class="muted">⏱ 판정: 각자 기기에서 <b>신호가 화면에 뜬 순간부터</b> 재요(통신 지연 영향 없음) · ${REACT_TIE}ms 이내는 동률로 판돈 나눔 · ${REACT_MIN}ms 미만은 비정상 입력으로 무효 · 신호 후 ${REACT_WIN/1000}초 안에 안 누르면 무반응</span></div></div></div>
+      <span class="muted">⏱ 판정: 각자 기기에서 <b>신호가 화면에 뜬 순간부터</b> 재요(통신 지연 영향 없음) · 1ms까지 같으면 동률자끼리 랜덤 추첨 · ${REACT_MIN}ms 미만은 비정상 입력으로 무효 · 신호 후 ${REACT_WIN/1000}초 안에 안 누르면 무반응</span></div></div></div>
     <div class="timerbar"><div class="timer" id="timer">준비</div><div class="muted" id="subcount"></div></div>
     <button class="rx-pad wait" id="rpad"><div class="rx-big" id="rbig">준비</div><div class="rx-sub" id="rsub">초록색이 되면 바로 누르세요!</div></button>
     <div class="muted rl-tip" style="text-align:center">화면을 누르거나 <b>스페이스바</b>를 눌러요</div>
@@ -2188,22 +2197,38 @@ function rUpdate(){
 function rLabel(r){ return r.st==='ok'?`${r.ms}ms`:r.st==='fs'?'부정 출발':r.st==='bad'?'비정상 입력':'무반응'; }
 function reactStageHTML(d){
   const ok=d.rows.filter(r=>r.st==='ok'), mx=Math.max(400,...ok.map(r=>r.ms));
-  return `<div class="showcap" id="showcap">⚡ 기록을 공개합니다!</div>
-    <div class="rx-board">${d.rows.slice().reverse().map((r,i)=>`<div class="rx-row ${r.st} ${d.winners.includes(r.id)?'win':''}" style="--w:${r.st==='ok'?Math.max(6,r.ms/mx*100):100}%">
+  const lotto=d.tie?`<div class="lotto" id="lotto"><div class="lt-title">🎰 ${d.rows.find(r=>r.id===d.winners[0]).ms}ms 동률 랜덤 추첨</div><div class="lt-row">${d.tie.map(id=>`<div class="lt-card" data-id="${id}">${avTag(id)}<span>${plainName(id)}</span></div>`).join('')}</div></div>`:'';
+  return `<div class="showcap" id="showcap">⚡ 기록을 공개합니다!</div>${lotto}
+    <div class="rx-board">${d.rows.slice().reverse().map((r,i)=>`<div class="rx-row ${r.st} ${d.tie&&d.tie.includes(r.id)?'tie':d.winners.includes(r.id)?'win':''}" data-id="${r.id}" style="--w:${r.st==='ok'?Math.max(6,r.ms/mx*100):100}%">
       <span class="rx-n">${avTag(r.id)}${plainName(r.id)}</span><div class="rx-bar"><i></i></div><b>${rLabel(r)}</b></div>`).join('')}</div>${SKIP}`;
 }
 function runReactResult(){
   const d=S.result.detail, sh=makeShow(), rows=[...document.querySelectorAll('.rx-row')];
   sh.onEnd=()=>rows.forEach(r=>r.classList.add('in'));
   rows.forEach((r,i)=>sh.at(400+i*Math.min(500,3000/rows.length),()=>{ r.classList.add('in'); if(r.classList.contains('win')){ burst(r,['⚡','✨','💰'],12); } }));
-  const w=d.winners;
-  sh.at(400+rows.length*Math.min(500,3000/rows.length)+200,()=>sh.cap(w.length?`⚡ 1등 ${w.map(plainName).join(', ')}! ${d.rows.find(r=>r.id===w[0]).ms}ms${w.length>1?' (동률)':''}`:'😱 유효한 기록이 없어요! 참가비를 돌려드려요',w.length?'good':'bad'));
-  sh.at(400+rows.length*Math.min(500,3000/rows.length)+2000,()=>sh.end());
+  const w=d.winners, lotto=$('#lotto'), cards=lotto?[...lotto.querySelectorAll('.lt-card')]:[], wRow=rows.find(r=>r.dataset.id===w[0]);
+  let t=400+rows.length*Math.min(500,3000/rows.length)+200;
+  if(d.tie){
+    const prevEnd=sh.onEnd; sh.onEnd=()=>{ prevEnd(); lotto.classList.add('show','done'); cards.forEach(c=>c.classList.toggle('on',c.dataset.id===w[0])); if(wRow){ wRow.classList.remove('tie'); wRow.classList.add('win'); } };
+    const ms=d.rows.find(r=>r.id===w[0]).ms;
+    sh.at(t,()=>{ burst(lotto,['❗','⚡'],8); sh.cap(`😲 ${d.tie.length}명이 똑같이 <b>${ms}ms</b>! 동률자 중 랜덤 추첨!`,'bad'); });
+    t+=1400; sh.at(t,()=>{ lotto.classList.add('show'); sh.cap('🎰 두구두구두구…'); });
+    const rnd=mulberry32(d.seed||1), n=cards.length, wi=d.tie.indexOf(w[0]);
+    const idx=Math.floor(rnd()*n), loops=3+Math.floor(rnd()*2), total=loops*n+((wi-idx+n)%n||n);
+    let tt=t+500;
+    for(let k=1;k<=total;k++){ const p=k/total; tt+=60+Math.pow(p,3)*520; const cur=(idx+k)%n; sh.at(tt,()=>cards.forEach((c,j)=>c.classList.toggle('on',j===cur))); }
+    t=tt+250;
+    sh.at(t,()=>{ lotto.classList.add('done'); burst(cards[wi],['🎉','✨','💰'],14); if(wRow){ wRow.classList.remove('tie'); wRow.classList.add('win'); burst(wRow,['⚡','💰'],10); }
+      sh.cap(`🎉 당첨! <b>${plainName(w[0])}</b> 님이 판돈 ${fmt(d.fee*d.n)}원 획득!`,'good'); });
+    sh.at(t+2200,()=>sh.end()); return;
+  }
+  sh.at(t,()=>sh.cap(w.length?`⚡ 1등 ${w.map(plainName).join(', ')}! ${d.rows.find(r=>r.id===w[0]).ms}ms`:'😱 유효한 기록이 없어요! 참가비를 돌려드려요',w.length?'good':'bad'));
+  sh.at(t+1800,()=>sh.end());
 }
 function reactReveal(d){
   const pot=d.fee*d.n, w=d.winners;
-  return `<div class="announce">${w.length?stk('sparkle','rx bounce'):stk('shrug')}${w.length?`가장 빠른 손<big>${w.map(id=>nameOf(id)).join(' · ')}</big>${d.rows.find(r=>r.id===w[0]).ms}ms · 판돈 <b class="up">${fmt(pot)}원</b>${w.length>1?' 나눠 가짐 (10ms 이내 동률)':' 획득!'}`:'유효한 기록이 없어 참가비를 모두 돌려드렸어요'}</div>
-    <div class="sec">기록 순위</div><div class="list">${d.rows.map((r,i)=>`<div class="li ${w.includes(r.id)?'win':''}"><span>${r.st==='ok'?(i+1)+'위':'—'} · ${nameOf(r.id)}</span><b class="${r.st==='ok'?'':'down'}">${rLabel(r)}</b></div>`).join('')}</div>`;
+  return `<div class="announce">${w.length?stk('sparkle','rx bounce'):stk('shrug')}${w.length?`가장 빠른 손<big>${w.map(id=>nameOf(id)).join(' · ')}</big>${d.rows.find(r=>r.id===w[0]).ms}ms · 판돈 <b class="up">${fmt(pot)}원</b>${d.tie?` 획득! <span class="pill">🎰 ${d.tie.length}명 동률 추첨</span>`:' 획득!'}`:'유효한 기록이 없어 참가비를 모두 돌려드렸어요'}</div>
+    <div class="sec">기록 순위</div><div class="list">${d.rows.map((r,i)=>`<div class="li ${w.includes(r.id)?'win':''}"><span>${r.st==='ok'?(1+d.rows.filter(x=>x.st==='ok'&&x.ms<r.ms).length)+'위':'—'} · ${nameOf(r.id)}${d.tie&&d.tie.includes(r.id)&&!w.includes(r.id)?' <span class="muted">(동률·추첨 탈락)</span>':''}</span><b class="${r.st==='ok'?'':'down'}">${rLabel(r)}</b></div>`).join('')}</div>`;
 }
 
 /* ===== 폭탄 돌리기 화면 ===== */
