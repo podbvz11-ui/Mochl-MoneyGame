@@ -612,11 +612,11 @@ const AVATAR_FEVER=["data:image/webp;base64,UklGRpgtAABXRUJQVlA4WAoAAAAQAAAA9gAA
 <script>
 // ===== LOGIC START =====
 const GAMES = {
-  unique:  { name:'최소 유일 숫자', icon:'🔢', stk:'think', desc:'참가비를 내고 1~50 중 숫자 하나를 고르세요. 다른 사람과 겹치지 않는 숫자 중 가장 작은 숫자를 고른 사람이 판돈을 모두 가져갑니다.' },
+  unique:  { name:'최소 유일 숫자', icon:'🔢', stk:'think', desc:'참가비를 내고 1~50 중 숫자 하나를 고르세요. 다른 사람과 겹치지 않는 숫자 중 가장 작은 숫자를 고른 사람이 판돈을 모두 가져갑니다. 겹치지 않은 숫자가 하나도 없으면 가장 작은 숫자를 고른 사람들끼리 랜덤 추첨!' },
   auction: { name:'눈치 경매', icon:'📦', stk:'box', desc:'상자 안에는 판돈 기준 금액(참가자 보유금 중앙값)의 -100% ~ 500% 사이 금액이 들어 있어요. 가장 높은 금액을 쓴 사람이 그 금액을 내고 상자를 가져갑니다. (최고가가 동점이면 동점자 중 랜덤 추첨!)' },
   pd:      { name:'협력 / 배신', icon:'🤝', stk:'heart', desc:'랜덤으로 짝을 지어요. 둘 다 협력하면 둘 다 이득, 둘 다 배신하면 둘 다 손해, 한 명만 배신하면 배신자가 크게 벌고 협력한 쪽이 크게 잃어요.' },
-  race:    { name:'경마 베팅', icon:'🏇', stk:'flyCape', desc:'우승할 말 한 마리에 원하는 만큼 거세요. 맞히면 배당만큼 돌려받고, 틀리면 건 돈을 잃어요.' },
-  duel:    { name:'1:1 대결', icon:'⚔️', stk:'boxRed', desc:'랜덤으로 짝을 지어 가위바위보! 각자 금액을 쓰면 둘 중 더 큰 금액이 판돈이 되고, 이긴 사람이 진 사람에게서 판돈만큼 가져갑니다.' }
+  race:    { name:'경마 베팅', icon:'🏇', stk:'flyCape', desc:'말 한 마리에 원하는 만큼 거세요. 1등이면 우승 배당, 2~3등 안에 들면 입상 배당만큼 돌려받아요. (5~8마리면 2등까지, 4마리 이하면 1등만)' },
+  duel:    { name:'1:1 대결', icon:'⚔️', stk:'boxRed', desc:'랜덤으로 짝을 지어 가위바위보! 각자 금액을 쓰면 둘 중 더 적은 금액이 판돈이 되고, 이긴 사람이 진 사람에게서 판돈만큼 가져갑니다. (내가 건 금액 이상은 잃지 않아요)' }
   ,roulette:{ name:'룰렛', icon:'🎡', stk:'excited', desc:'유럽식 룰렛(0~36). 색·홀짝·낮음/높음·구간·숫자에 걸어 결과를 맞혀요. 항목마다 하나씩, 여러 항목에 동시에 걸 수 있어요. 0이 나오면 숫자 0 외에는 모두 실패!' }
   ,dice:{ name:'주사위 홀짝', icon:'🎲', stk:'proud', desc:'주사위 2개를 굴려 합이 홀수일지 짝수일지 맞혀요. 맞히면 건 금액의 1.9배(원금 포함)를 받아요. 홀·짝 확률은 각각 50%!' }
   ,shell:{ name:'햄찌 야바위', icon:'🐹', stk:'nervous', desc:'해바라기씨를 문 햄스터를 2초간 보여준 뒤 눈으로 못 따라갈 속도로 섞어요. 섞기가 끝나면 씨앗을 문 햄스터를 골라요. 맞히면 건 금액의 2.85배(원금 포함)!' }
@@ -671,9 +671,22 @@ function makeRunners(n){
   const ids=shuffle(AVATAR_NAMES.map((_,i)=>i)).slice(0,n);
   const w=ids.map(()=>0.15+Math.pow(Math.random(),1.6)), sum=w.reduce((a,b)=>a+b,0);
   // 배당 상한 없음: 회수율 95%만 지키고, 각 말의 최소 우승확률만 보장 (평균 확률의 60%)
-  const fl=0.6/n, cap=RACE_MAX;
-  return ids.map((av,i)=>{ const p=fl+(1-fl*n)*w[i]/sum; return { av, name:AVATAR_NAMES[av], p, odds:Math.min(cap,Math.max(1.1,Math.round(RACE_RTP*10/p)/10)) }; });
+  const fl=0.6/n, K=raceK(n), share=K>1?RACE_WIN_SHARE:1;
+  const R=ids.map((av,i)=>({ av, name:AVATAR_NAMES[av], p:fl+(1-fl*n)*w[i]/sum }));
+  // 2·3등 들어올 확률은 시뮬레이션으로 계산 (실제 순위도 같은 방식으로 정함)
+  const pl=new Array(n).fill(0), M=20000;
+  if(K>1) for(let t=0;t<M;t++){ const o=raceOrder(R,K); for(let k=1;k<K;k++) pl[o[k]]++; }
+  R.forEach((h,i)=>{ h.odds=Math.max(1.1,Math.round(RACE_RTP*share*10/h.p)/10);
+    if(K>1){ h.pp=pl[i]/M; h.pl=Math.max(0.1,Math.round(RACE_RTP*(1-share)*10/Math.max(1e-6,h.pp))/10); } });
+  return R;
 }
+// 몇 등까지 배당을 주는지: 4마리 이하 1등만 · 5~8마리 2등까지 · 9마리 이상 3등까지
+function raceK(n){ return n<=4?1:n<=8?2:3; }
+// 우승 확률(p)에 비례해서 1등부터 차례로 뽑는 순위 (k등까지만 뽑으면 나머지는 생략)
+function raceOrder(R,k){ const left=R.map((_,i)=>i), out=[]; k=k||R.length;
+  while(out.length<k&&left.length){ let tot=0; for(const i of left) tot+=R[i].p; let r=Math.random()*tot, j=0;
+    for(;j<left.length-1;j++){ r-=R[left[j]].p; if(r<0) break; } out.push(left.splice(j,1)[0]); }
+  return out; }
 function pickRunner(R){ let r=Math.random(); for(let i=0;i<R.length;i++){ r-=R[i].p; if(r<0) return i; } return R.length-1; }
 // 같은 seed면 모든 화면에서 똑같은 경주 장면이 나옴
 function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
@@ -755,10 +768,13 @@ function resolve(type,params,subs){
     const picks=Object.entries(subs).map(([id,s])=>({id,n:s.n}));
     const cnt={}; picks.forEach(p=>cnt[p.n]=(cnt[p.n]||0)+1);
     const uniq=Object.keys(cnt).map(Number).filter(n=>cnt[n]===1).sort((a,b)=>a-b);
-    const pot=fee*picks.length; let winner=null, winNum=null;
-    if(uniq.length){ winNum=uniq[0]; winner=picks.find(p=>p.n===winNum).id; picks.forEach(p=>add(p.id,-fee)); add(winner,pot); }
+    const pot=fee*picks.length; let winner=null, winNum=null, tie=null;
+    if(uniq.length){ winNum=uniq[0]; winner=picks.find(p=>p.n===winNum).id; }
+    else if(picks.length){   // 겹치지 않은 숫자가 없으면: 가장 작은 숫자를 고른 사람들끼리 랜덤 추첨
+      winNum=Math.min(...picks.map(p=>p.n)); tie=shuffle(picks.filter(p=>p.n===winNum).map(p=>p.id)); winner=tie[Math.floor(Math.random()*tie.length)]; }
+    if(winner){ picks.forEach(p=>add(p.id,-fee)); add(winner,pot); }
     picks.sort((a,b)=>a.n-b.n);
-    return { deltas, detail:{ picks, winner, winNum, pot, fee } };
+    return { deltas, detail:{ picks, winner, winNum, pot, fee, tie, seed:Math.floor(Math.random()*2147483647) } };
   }
   if(type==='auction'){
     const box=rollBox(params.m);
@@ -788,10 +804,10 @@ function resolve(type,params,subs){
     return { deltas, detail:{ rows, stake:S } };
   }
   if(type==='race'){
-    const R=params.runners, w=pickRunner(R);
-    const order=[w,...shuffle(R.map((_,i)=>i).filter(i=>i!==w))];
+    const R=params.runners, order=raceOrder(R), w=order[0], K=raceK(R.length);
     const bets=Object.entries(subs).map(([id,s])=>{
-      const d=s.h===w?Math.floor(s.a*R[w].odds)-s.a:-s.a;
+      const pos=order.indexOf(s.h);
+      const d=pos===0?Math.floor(s.a*R[w].odds)-s.a:(pos<K&&R[s.h].pl)?Math.floor(s.a*R[s.h].pl)-s.a:-s.a;
       add(id,d); return { id,h:s.h,a:s.a,d };
     }).sort((x,y)=>y.d-x.d);
     return { deltas, detail:{ winner:w, order, bets, runners:R, seed:Math.floor(Math.random()*2147483647) } };
@@ -800,7 +816,7 @@ function resolve(type,params,subs){
     const rows=params.pairs.map(([a,b])=>{
       const sa=a==='BOT'?{r:randHand(),a:0}:(subs[a]||{r:randHand(),a:0,miss:true});
       const sb=b==='BOT'?{r:randHand(),a:0}:(subs[b]||{r:randHand(),a:0,miss:true});
-      const stake=Math.max(sa.a,sb.a);
+      const stake=a==='BOT'?sb.a:b==='BOT'?sa.a:Math.min(sa.a,sb.a);   // 판돈 = 둘 중 적게 건 금액 → 내가 건 돈 이상은 잃지 않음
       let da=0,db=0;
       if(sa.r!==sb.r){ if(BEATS[sa.r]===sb.r){ da=stake; db=-stake; } else { da=-stake; db=stake; } }
       add(a,da); add(b,db);
@@ -863,7 +879,7 @@ const LOTTO_DRAW=2;     // 숫자 추첨에서 나오는 공 개수
 // 보물상자 25개 구성 (개수 고정, 위치만 섞음) — 회수율 (0×9+0.7×8+1.4×5+3×2+5×1)/25 = 94.4%
 const CHEST=[ {g:'miss',name:'꽝',n:9,m:0}, {g:'common',name:'일반',n:8,m:0.7}, {g:'fine',name:'고급',n:5,m:1.4}, {g:'rare',name:'희귀',n:2,m:3}, {g:'legend',name:'전설',n:1,m:5} ];
 const CHEST_BY=Object.fromEntries(CHEST.map(c=>[c.g,c]));
-const RACE_RTP=0.95, RACE_MAX=999; // 경마: 배당 = 0.95 ÷ 우승확률 (상한 없음)
+const RACE_RTP=0.95, RACE_WIN_SHARE=0.6; // 경마: 회수율 95% 중 60%는 1등 배당, 40%는 2·3등 배당으로 나눔 → 1등 배당이 전보다 약 40% 낮아짐
 const PK_ROWS=8, PK_MULT=[10,3,1.3,0.7,0.35,0.7,1.3,3,10],  // 플링코 회수율 약 95.2%
   PK_MAXBALL=10;
 const pkSlot=path=>{ let k=0; for(let i=0;i<PK_ROWS;i++) if(path>>i&1) k++; return k; };
@@ -888,6 +904,25 @@ function minesSettle(fee,players,alive){
   dead.forEach(id=>{ if(fee) deltas[id]=-fee; }); alive.forEach(id=>{ if(share) deltas[id]=share; });
   return deltas;
 }
+// 베팅 규칙: 한 칸(말·항목·숫자·씨앗)당 최소 100원, 배팅 게임 총액은 '참가자 보유금 중앙값 × 2' 까지
+const MIN_BET=100, BET_CAP_X=2, CAPPED=['race','roulette','dice','shell','lotto','plinko','chest'];
+function betUnits(type,d){
+  if(!d) return [];
+  if(type==='roulette') return Object.values(d.bets||{}).map(b=>b.a);
+  if(type==='duel') return d.a>0?[d.a]:[];
+  if(type==='race'||type==='dice'||type==='shell'||type==='chest'||type==='lotto'||type==='plinko') return [d.a];
+  return [];
+}
+const minBetFor=money=>Math.min(MIN_BET,Math.max(1,Math.floor(money)));   // 보유금이 100원 미만이면 가진 만큼은 걸 수 있음
+function betLimit(type,money,params){ money=Math.max(0,Math.floor(money)); return CAPPED.includes(type)&&params&&params.cap?Math.min(money,params.cap):money; }
+// 문제 없으면 null, 아니면 'min' | 'money' | 'cap'
+function betCheck(type,d,money,params){
+  if(betUnits(type,d).some(a=>a<minBetFor(money))) return 'min';
+  const t=betTotal(type,d);
+  if(t>Math.max(0,money)) return 'money';
+  if(CAPPED.includes(type)&&params&&params.cap&&t>params.cap) return 'cap';
+  return null;
+}
 // 한 번의 제출에서 거는 총액 (고정 참가비 게임은 0)
 function betTotal(type,d){
   if(!d) return 0;
@@ -899,16 +934,16 @@ function betTotal(type,d){
   return 0;
 }
 // 컴퓨터 베팅이 보유금을 넘지 않게 줄이기
-function clampMove(type,mv,money){
-  if(!mv) return mv; money=Math.max(0,Math.floor(money));
+function clampMove(type,mv,money,params){
+  if(!mv) return mv; const mn=minBetFor(money); money=betLimit(type,money,params);
   if(type==='auction') mv.bid=Math.min(mv.bid,money);
-  if(type==='plinko'&&mv.a*mv.c>money){ mv.a=Math.floor(money/mv.c); if(mv.a<1){ mv.c=1; mv.a=Math.max(1,money); } }
-  if(type==='lotto'&&mv.a*mv.nums.length>money){ mv.a=Math.floor(money/mv.nums.length); if(mv.a<1){ mv.nums=mv.nums.slice(0,1); mv.a=Math.max(1,money); } }
-  if(type==='race'||type==='dice'||type==='shell'||type==='chest') mv.a=Math.max(1,Math.min(mv.a,money));
-  if(type==='duel') mv.a=Math.min(mv.a,money);
+  if(type==='plinko'){ mv.a=Math.max(mv.a,Math.min(mn,money)); if(mv.a*mv.c>money){ mv.c=Math.max(1,Math.min(mv.c,Math.floor(money/mv.a))); mv.a=Math.min(mv.a,Math.floor(money/mv.c)); } }
+  if(type==='lotto'){ mv.a=Math.max(mv.a,Math.min(mn,money)); if(mv.a*mv.nums.length>money){ mv.nums=mv.nums.slice(0,Math.max(1,Math.floor(money/mv.a))); mv.a=Math.min(mv.a,Math.floor(money/mv.nums.length)); } }
+  if(type==='race'||type==='dice'||type==='shell'||type==='chest') mv.a=Math.max(Math.min(mn,money),Math.min(mv.a,money));
+  if(type==='duel'){ mv.a=Math.min(mv.a,money); if(mv.a>0&&mv.a<mn) mv.a=0; }
   if(type==='roulette'){ const tot=betTotal(type,mv);
-    if(tot>money){ const f=money/tot; for(const k of Object.keys(mv.bets)){ mv.bets[k].a=Math.floor(mv.bets[k].a*f); if(mv.bets[k].a<=0) delete mv.bets[k]; }
-      if(!Object.keys(mv.bets).length) mv.bets={color:{v:'R',a:Math.max(1,money)}}; } }
+    const f=tot>money?money/tot:1; for(const k of Object.keys(mv.bets)){ mv.bets[k].a=Math.floor(mv.bets[k].a*f); if(mv.bets[k].a<mn) delete mv.bets[k]; }
+    if(!Object.keys(mv.bets).length) mv.bets={color:{v:'R',a:Math.max(1,money)}}; }
   return mv;
 }
 // 컴퓨터(봇)의 선택
@@ -1058,6 +1093,7 @@ function hStartRound(type){
   if(st.settings.hideMoney){ const e=Math.pow(10,Math.floor(Math.log10(Math.max(1,med)))), m=med/e; med=(m<1.5?1:m<3.5?2:m<7.5?5:10)*e; }
   const base=niceAmt(med*(st.settings.stakePct||10)/100);
   params.base=base; params.med=niceAmt(med);
+  if(CAPPED.includes(type)) params.cap=niceAmt(med*BET_CAP_X);
   if(type==='unique') params.fee=base;
   if(type==='mines'||type==='bomb'||type==='react') params.fee=base;
   if(type==='auction') params.m=niceAmt(med);
@@ -1095,7 +1131,7 @@ function scheduleBots(){
   g.eligible.filter(id=>st.players[id]&&st.players[id].bot).forEach(id=>{
     setTimeout(()=>{
       if(HOST.state.round!==round||HOST.state.phase!=='play'||!st.players[id]) return;
-      hSubmit(id,clampMove(g.type,botMove(g.type,st.players[id].money,g.params),st.players[id].money));
+      hSubmit(id,clampMove(g.type,botMove(g.type,st.players[id].money,g.params),st.players[id].money,g.params));
     },g.type==='chest'?(g.t0-Date.now())+800+Math.random()*Math.min(9000,(g.deadline-g.t0)*0.6):g.type==='shell'?(g.params.t0+g.params.show+g.params.shuf-Date.now())+400+Math.random()*g.params.pick*0.6:1500+Math.random()*Math.max(0,maxWait-1500));
   });
 }
@@ -1229,7 +1265,7 @@ function hSubmit(pid,data){
   const clean=validate(g.type,data,g.params); if(!clean) return;
   if(g.type==='chest'&&Date.now()<g.t0-200) return;   // 상자 섞는 중
   if(g.type==='shell'&&Date.now()<g.params.t0+g.params.show+g.params.shuf-300) return; // 섞기가 끝나기 전엔 선택 불가
-  if(betTotal(g.type,clean)>Math.max(0,st.players[pid].money)) return; // 보유금보다 많이 걸 수 없음
+  if(betCheck(g.type,clean,st.players[pid].money,g.params)) return; // 최소 금액 · 보유금 · 베팅 한도 확인
   HOST.subs[pid]={...clean,ts:Date.now()}; g.submitted[pid]=true;
   if(g.type==='chest') g.picks[pid]=clean.k;
   if(g.type==='dice') g.stats[clean.c]=(g.stats[clean.c]||0)+1;
@@ -1544,7 +1580,8 @@ function playHTML(){
   if(g.type==='unique') extra=`<br>참가비: <b>${fmt(g.params.fee)}원</b> ${g.params.med?`<span class="muted">(보유금 중앙값 ${fmt(g.params.med)}원의 ${S.settings.stakePct||10}%)</span>`:'<span class="muted">(판 크기에 맞춰 자동 조정)</span>'}`;
   if(g.type==='auction'&&g.params.m){ const [lo,hi]=boxRange(g.params.m); extra=`<br>이번 상자: <b>${fmt(lo)}원 ~ ${fmt(hi)}원</b> ${S.settings.hideMoney?'<span class="muted">(판 크기에 맞춰 자동 조정)</span>':`<span class="muted">(보유금 중앙값 ${fmt(g.params.m)}원 기준)</span>`}`; }
   if(g.type==='pd'){ const s=g.params.stake; extra=`<br>이번 판돈 <b>${fmt(s)}원</b> ${S.settings.hideMoney?'<span class="muted">(판 크기에 맞춰 자동 조정)</span>':`<span class="muted">(보유금 중앙값의 ${S.settings.stakePct||10}%)</span>`}<br>둘 다 협력 <b class="up">+${fmt(s)}</b> · 둘 다 배신 <b class="down">-${fmt(s)}</b> · 혼자 배신 <b class="up">+${fmt(2*s)}</b> / 당한 쪽 <b class="down">-${fmt(2*s)}</b><br>제출하지 않으면 협력으로 처리돼요.`; }
-  if(g.type==='duel') extra='<br>제출하지 않으면 무작위 손, 0원으로 처리돼요.';
+  if(g.type==='duel') extra='<br>판돈은 두 사람 중 <b>적게 건 금액</b>이에요. 제출하지 않으면 무작위 손, 0원으로 처리돼요.';
+  if(CAPPED.includes(g.type)&&g.params.cap) extra+=`<br>이번 판 베팅 한도: <b>${fmt(g.params.cap)}원</b> <span class="muted">(판 크기의 ${BET_CAP_X}배 · 최소 ${fmt(MIN_BET)}원부터)</span>`;
   const opp=elig?myOpponent(g):null;
   let body;
   if(!elig) body=`<div class="wait">이번 라운드가 시작된 뒤에 들어오셔서 관전 중이에요. 다음 라운드부터 참여할 수 있어요.</div>`;
@@ -1558,20 +1595,23 @@ function playHTML(){
     ${ME.isHost?`<button class="btn ghost" id="closeBtn">⏹ 지금 마감하기</button>`:''}`;
 }
 const myMoney=()=>S.players[ME.pid]?S.players[ME.pid].money:0;
-const amtInput=(ph)=>`<label>금액 (내 보유금 <b>${fmt(myMoney())}원</b>까지 걸 수 있어요)</label><div class="amtrow"><input type="number" id="amt" min="0" max="${myMoney()}" inputmode="numeric" placeholder="${ph}"><button class="btn sm" data-allin="1">올인</button></div>`;
+const myLimit=()=>S.game?betLimit(S.game.type,myMoney(),S.game.params):myMoney();
+const limitWord=()=>S.game&&S.game.params&&S.game.params.cap&&myMoney()>S.game.params.cap?'베팅 한도':'보유금';
+const BET_ERR=t=>({min:`한 칸에 최소 ${fmt(minBetFor(myMoney()))}원 이상 걸어야 해요`, money:`보유금(${fmt(myMoney())}원)보다 많이 걸 수 없어요`, cap:`이번 판 베팅 한도(${fmt(S.game.params.cap)}원)를 넘었어요`})[t];
+const amtInput=(ph)=>`<label>금액 (${limitWord()} <b>${fmt(myLimit())}원</b>까지 걸 수 있어요)</label><div class="amtrow"><input type="number" id="amt" min="0" max="${myLimit()}" inputmode="numeric" placeholder="${ph}"><button class="btn sm" data-allin="1">올인</button></div>`;
 function inputHTML(g){
   switch(g.type){
     case 'unique': return `<div class="numgrid">${Array.from({length:50},(_,i)=>`<button class="btn" data-grp="n" data-sel="${i+1}">${i+1}</button>`).join('')}</div><button class="btn big gold" id="submitBtn">제출</button>`;
     case 'auction': return `${amtInput('입찰 금액')}<button class="btn big gold" id="submitBtn">입찰하기</button>`;
     case 'pd': return `<div class="pdgrid"><button class="btn pdbtn" data-pd="C">${stk('hugHeart','pdimg')}🤝 협력<small>함께 이득을 노린다</small></button><button class="btn pdbtn" data-pd="B">${stk('angry','pdimg')}🗡️ 배신<small>혼자 크게 먹는다</small></button></div>`;
-    case 'race': return `<div class="horses">${g.params.runners.map((h,i)=>`<button class="btn horse-opt" data-grp="h" data-sel="${i}"><img src="${AVATAR_SRC[h.av]}" alt=""><span class="ho-t"><b>${i+1}번 ${esc(h.name)}</b><span class="muted">배당 <b class="odds">${h.odds}배</b> · 우승 확률 ${Math.max(1,Math.round(h.p*100))}%</span></span></button>`).join('')}</div>${amtInput('걸 금액')}<button class="btn big gold" id="submitBtn">베팅하기</button>`;
+    case 'race': return `<div class="horses">${g.params.runners.map((h,i)=>`<button class="btn horse-opt" data-grp="h" data-sel="${i}"><img src="${AVATAR_SRC[h.av]}" alt=""><span class="ho-t"><b>${i+1}번 ${esc(h.name)}</b><span class="muted">우승 <b class="odds">${h.odds}배</b>${h.pl?` · ${raceK(g.params.runners.length)>2?'2~3등':'2등'} <b class="odds">${h.pl}배</b>`:''} · 우승 확률 ${Math.max(1,Math.round(h.p*100))}%</span></span></button>`).join('')}</div>${amtInput('걸 금액')}<button class="btn big gold" id="submitBtn">베팅하기</button>`;
     case 'plinko': return `${pkTableHTML()}
         <label>해바라기씨 개수</label><div class="pk-cnt">${Array.from({length:PK_MAXBALL},(_,i)=>i+1).map(n=>`<button class="btn sm ${n===1?'active':''}" data-grp="pc" data-sel="${n}">${n}</button>`).join('')}</div>
-        <label>씨앗 1개당 금액 (총액은 보유금 <b>${fmt(myMoney())}원</b>까지)</label><div class="amtrow"><input type="number" id="amt" min="1" inputmode="numeric" placeholder="씨앗 1개당 금액"><button class="btn sm" data-allin="plinko">최대</button></div>
+        <label>씨앗 1개당 금액 (총액은 ${limitWord()} <b>${fmt(myLimit())}원</b>까지)</label><div class="amtrow"><input type="number" id="amt" min="1" inputmode="numeric" placeholder="씨앗 1개당 금액"><button class="btn sm" data-allin="plinko">최대</button></div>
         <div class="rl-total" id="pktotal"></div><button class="btn big gold" id="submitBtn">🌻 떨어뜨리기</button>`;
     case 'lotto': return `${lottoHistHTML()}<div class="lt-grid">${Array.from({length:20},(_,i)=>i+1).map(n=>`<button class="lball b${lottoBand(n)}" data-ln="${n}">${n}<i class="cnt" data-ck="${n}"></i></button>`).join('')}</div>
         <div class="muted rl-tip">숫자를 <b>1~3개</b> 고르세요 (다시 누르면 취소) · 씨앗 <b>${LOTTO_DRAW}개</b>가 뽑혀요 · 맞힌 숫자 1개당 금액의 <b>${LOTTO_MULT}배</b></div>
-        <label>숫자 하나당 금액 (총액은 보유금 <b>${fmt(myMoney())}원</b>까지)</label><div class="amtrow"><input type="number" id="amt" min="1" inputmode="numeric" placeholder="숫자당 금액"><button class="btn sm" data-allin="lotto">최대</button></div>
+        <label>숫자 하나당 금액 (총액은 ${limitWord()} <b>${fmt(myLimit())}원</b>까지)</label><div class="amtrow"><input type="number" id="amt" min="1" inputmode="numeric" placeholder="숫자당 금액"><button class="btn sm" data-allin="lotto">최대</button></div>
         <div class="rl-total" id="lttotal"></div><button class="btn big gold" id="submitBtn">베팅하기</button>`;
     case 'shell': return `<div class="muted rl-tip">섞는 동안 금액을 미리 입력해 두세요! 섞기가 끝나면 햄스터를 눌러 고르고 <b>베팅하기</b>.</div>${amtInput('걸 금액')}<button class="btn big gold" id="submitBtn">베팅하기</button>`;
     case 'dice': return `${diceHistHTML()}<div class="dc-pick">
@@ -1583,7 +1623,7 @@ function inputHTML(g){
   }
   return '';
 }
-const HINT={ plinko:'씨앗 개수와 1개당 금액(1원 이상)을 정해주세요', lotto:'숫자를 1~3개 고르고 숫자당 1원 이상 입력하세요', shell:'씨앗을 문 햄스터를 고르고 1원 이상 걸어주세요', dice:'홀 또는 짝을 고르고 1원 이상 걸어주세요', roulette:'걸 항목을 고르고 각각 1원 이상 입력하세요', unique:'숫자를 하나 골라주세요', auction:'입찰 금액을 입력하세요 (0 이상)', race:'말을 고르고 1원 이상 걸어주세요', duel:'가위·바위·보를 고르고 금액을 입력하세요' };
+const HINT={ plinko:'씨앗 개수와 1개당 금액(100원 이상)을 정해주세요', lotto:'숫자를 1~3개 고르고 숫자당 100원 이상 입력하세요', shell:'씨앗을 문 햄스터를 고르고 100원 이상 걸어주세요', dice:'홀 또는 짝을 고르고 100원 이상 걸어주세요', roulette:'걸 항목을 고르고 각각 100원 이상 입력하세요', unique:'숫자를 하나 골라주세요', auction:'입찰 금액을 입력하세요 (0 이상)', race:'말을 고르고 100원 이상 걸어주세요', duel:'가위·바위·보를 고르고 금액을 입력하세요' };
 function bindStage(){
   const st=$('#stage');
   st.onclick=e=>{
@@ -1600,7 +1640,7 @@ function bindStage(){
     if(t.dataset.ck2!==undefined) return cPick(+t.dataset.ck2);
     if(t.id==='cConfirm') return cConfirm();
     if(t.id==='bmute') return bToggleMute();
-    if(t.dataset.allin){ const a=$('#amt'); if(a) a.value=t.dataset.allin==='lotto'?Math.floor(myMoney()/Math.max(1,(SEL.ln||[]).length)):t.dataset.allin==='plinko'?Math.floor(myMoney()/Math.max(1,+(SEL.pc||1))):myMoney(); lottoTotal(); pkTotal(); return; }
+    if(t.dataset.allin){ const a=$('#amt'); if(a) a.value=t.dataset.allin==='lotto'?Math.floor(myLimit()/Math.max(1,(SEL.ln||[]).length)):t.dataset.allin==='plinko'?Math.floor(myLimit()/Math.max(1,+(SEL.pc||1))):myLimit(); lottoTotal(); pkTotal(); return; }
     if(t.dataset.ln) return lottoPick(+t.dataset.ln);
     if(t.dataset.rk) return rlPick(t.dataset.rk,t.dataset.rv);
     if(t.dataset.rlx) return rlPick(t.dataset.rlx,null);
@@ -1620,7 +1660,7 @@ function submit(d){
   if(!clean) return toast(HINT[g.type]||'입력을 확인해 주세요');
   if(g.type==='shell'&&shellNow(g)<g.params.show+g.params.shuf) return toast('아직 섞는 중이에요! 섞기가 끝나면 골라주세요');
   const have=S.players[ME.pid]?S.players[ME.pid].money:0;
-  if(betTotal(g.type,clean)>have) return toast(`보유금(${fmt(have)}원)보다 많이 걸 수 없어요${g.type==='roulette'?' · 베팅 합계를 줄여주세요':''}`);
+  const be=betCheck(g.type,clean,have,g.params); if(be) return toast(BET_ERR(be)+(g.type==='roulette'&&be!=='min'?' · 베팅 합계를 줄여주세요':''));
   mySub={round:S.round,data:clean};
   if(ME.isHost) hSubmit(ME.pid,clean);
   else { if(CL&&CL.conn&&CL.conn.open) CL.conn.send({t:'act',round:S.round,data:clean}); else { mySub={round:-1,data:null}; return toast('연결이 끊겨 제출하지 못했어요'); } render(); }
@@ -1645,9 +1685,10 @@ function resultBodyOld(r){
   if(r.type==='unique'){
     if(!d.picks.length) return `<div class="announce">아무도 참여하지 않았어요.</div>`;
     const by={}; d.picks.forEach(p=>(by[p.n]=by[p.n]||[]).push(p.id));
-    const chips=Object.keys(by).map(Number).sort((a,b)=>a-b).map(n=>`<span class="numchip ${by[n].length===1?'uni':'dup'}"><b>${n}</b> · ${by[n].map(nameOf).join(', ')}</span>`).join('');
-    const head=d.winner?`<div class="announce">${stk('sparkle','rx bounce')}가장 작은 유일 숫자는<big>${d.winNum}</big><b>${nameOf(d.winner)}</b> 님이 판돈 <b>${fmt(d.pot)}원</b> 획득!</div>`:`<div class="announce">${stk('shock')}겹치지 않은 숫자가 하나도 없어요!<br>참가비는 모두 돌려드렸어요.</div>`;
-    return head+`<div class="sec">모두의 선택 (초록 = 유일, 줄 = 겹침)</div><div class="nums">${chips}</div>`;
+    const chips=Object.keys(by).map(Number).sort((a,b)=>a-b).map(n=>`<span class="numchip ${by[n].length===1||(d.tie&&n===d.winNum)?'uni':'dup'}"><b>${n}</b> · ${by[n].map(nameOf).join(', ')}</span>`).join('');
+    const head=d.winner&&d.tie?`<div class="announce">${stk('sparkle','rx bounce')}겹치지 않은 숫자가 없어서 가장 작은 숫자 <b>${d.winNum}</b>번 추첨!<big>🎰 ${nameOf(d.winner)}</big>님이 ${d.tie.length}명 중 당첨! 판돈 <b>${fmt(d.pot)}원</b> 획득!</div>`
+      :d.winner?`<div class="announce">${stk('sparkle','rx bounce')}가장 작은 유일 숫자는<big>${d.winNum}</big><b>${nameOf(d.winner)}</b> 님이 판돈 <b>${fmt(d.pot)}원</b> 획득!</div>`:`<div class="announce">${stk('shock')}아무도 숫자를 내지 않았어요.</div>`;
+    return head+`<div class="sec">모두의 선택 (초록 = 당첨 숫자, 줄 = 겹침)</div><div class="nums">${chips}</div>`;
   }
   if(r.type==='auction'){
     const w=d.bids.find(b=>b.id===d.winner)||d.bids[0], prof=d.winner?(w.bid==null?null:d.box-w.bid):0;
@@ -1669,7 +1710,7 @@ function resultBodyOld(r){
   }
   if(r.type==='race'){
     const R=d.runners, n=R.length, lh=n<=6?58:n<=10?46:n<=14?38:30, myB=d.bets.find(b=>b.id===ME.pid);
-    return `${myB?`<div class="rc-my"><img src="${AVATAR_SRC[R[myB.h].av]}" alt=""><div>🎯 내가 건 말: <b>${myB.h+1}번 ${esc(R[myB.h].name)}</b> · ${fmt(myB.a)}원 <span class="muted">(배당 ${R[myB.h].odds}배)</span><div class="rc-pos" id="rcpos">출발 대기 중…</div></div></div>`:`<div class="rc-my none">👀 이번 경주는 관전 중이에요</div>`}
+    return `${myB?`<div class="rc-my"><img src="${AVATAR_SRC[R[myB.h].av]}" alt=""><div>🎯 내가 건 말: <b>${myB.h+1}번 ${esc(R[myB.h].name)}</b> · ${fmt(myB.a)}원 <span class="muted">(우승 ${R[myB.h].odds}배${R[myB.h].pl?` · 입상 ${R[myB.h].pl}배`:''})</span><div class="rc-pos" id="rcpos">출발 대기 중…</div></div></div>`:`<div class="rc-my none">👀 이번 경주는 관전 중이에요</div>`}
       <div class="live" id="live"></div><div class="evcap" id="evcap"></div>
       <div class="track ready" id="track" style="--lh:${lh}px;--sz:${Math.round(lh*1.35)}px">
         <div class="countdown" id="countdown"></div><div class="photo" id="photo">📸 결승 직전!</div>
@@ -1697,9 +1738,9 @@ function resultBodyOld(r){
 }
 function raceReveal(d){
   const R=d.runners, h=R[d.winner];
-  const podium=d.order.slice(0,3).map((ri,k)=>`<span class="pill">${['🥇','🥈','🥉'][k]} ${ri+1}번 ${esc(R[ri].name)}</span>`).join(' ');
+  const podium=d.order.slice(0,3).map((ri,k)=>`<span class="pill">${['🥇','🥈','🥉'][k]} ${ri+1}번 ${esc(R[ri].name)}${k&&k<raceK(R.length)&&R[ri].pl?` · ${R[ri].pl}배`:''}</span>`).join(' ');
   return `<div class="announce win-ann"><img class="win-img" src="${AVATAR_SRC[h.av]}" alt="">우승은<big>${d.winner+1}번 ${esc(h.name)}!</big>배당 ${h.odds}배<div class="deltas" style="justify-content:center">${podium}</div></div>`+
-    (d.bets.length?`<div class="sec">베팅 내역</div><div class="list">${d.bets.map(b=>`<div class="li ${b.h===d.winner?'win':''}"><span>${nameOf(b.id)} · ${b.h+1}번 ${esc(R[b.h].name)} ${fmt(b.a)}원</span><b class="${b.d>0?'up':'down'}">${signed(b.d)}</b></div>`).join('')}</div>`:'<p class="muted">아무도 베팅하지 않았어요.</p>');
+    (d.bets.length?`<div class="sec">베팅 내역</div><div class="list">${d.bets.map(b=>`<div class="li ${b.d>0?'win':''}"><span>${nameOf(b.id)} · ${b.h+1}번 ${esc(R[b.h].name)} ${fmt(b.a)}원</span><b class="${b.d>0?'up':'down'}">${signed(b.d)}</b></div>`).join('')}</div>`:'<p class="muted">아무도 베팅하지 않았어요.</p>');
 }
 function afterStage(){
   if(S.phase==='result'&&S.result.type==='race') runRace();
@@ -1746,7 +1787,8 @@ function showStage(r){
     if(!d.picks.length) return `<div class="announce">${stk('sleep')}아무도 숫자를 내지 않았어요.</div>`;
     const by={}; d.picks.forEach(p=>(by[p.n]=by[p.n]||[]).push(p.id));
     const nums=Object.keys(by).map(Number).sort((a,b)=>a-b);
-    return `<div class="showcap" id="showcap">모두의 숫자를 공개합니다!</div>
+    const lotto=d.tie?`<div class="lotto" id="lotto"><div class="lt-title">🎰 숫자 ${d.winNum}번 랜덤 추첨</div><div class="lt-row">${d.tie.map(id=>`<div class="lt-card" data-id="${id}">${avTag(id)}<span>${plainName(id)}</span></div>`).join('')}</div></div>`:'';
+    return `<div class="showcap" id="showcap">모두의 숫자를 공개합니다!</div>${lotto}
       <div class="uq-row">${nums.map((n,i)=>`<div class="uq-col" data-n="${n}" style="--i:${i}"><div class="uq-card">${n}</div><div class="uq-avs">${by[n].map(id=>`<div class="uq-p">${avTag(id)}<span>${plainName(id)}</span></div>`).join('')}</div><div class="uq-mark"></div></div>`).join('')}</div>${SKIP}`;
   }
   if(r.type==='auction'){
@@ -1778,7 +1820,9 @@ function runShow(r){
     if(!cols.length){ sh.at(600,()=>sh.end()); return; }
     cols.forEach(c=>c.classList.add('in'));
     const step=Math.min(750,6000/cols.length), t0=500+cols.length*90;
-    sh.onEnd=()=>{ cols.forEach(c=>{ c.classList.remove('scan'); const n=+c.dataset.n; if(d.winner&&n===d.winNum) c.classList.add('win'); else if(c.querySelectorAll('.uq-p').length>1) c.classList.add('dead'); }); };
+    const lotto=$('#lotto'), cards=lotto?[...lotto.querySelectorAll('.lt-card')]:[];
+    sh.onEnd=()=>{ cols.forEach(c=>{ c.classList.remove('scan'); const n=+c.dataset.n; if(d.winner&&n===d.winNum){ c.classList.remove('dead'); c.classList.add('win'); } else if(c.querySelectorAll('.uq-p').length>1) c.classList.add('dead'); });
+      if(lotto){ lotto.classList.add('show','done'); cards.forEach(c=>c.classList.toggle('on',c.dataset.id===d.winner)); } };
     sh.at(t0-300,()=>sh.cap('🔍 가장 작은 숫자부터 확인합니다…'));
     for(let i=0;i<cols.length;i++){
       const c=cols[i], n=+c.dataset.n, cnt=c.querySelectorAll('.uq-p').length;
@@ -1787,8 +1831,21 @@ function runShow(r){
         else { c.classList.add('win'); burst(c,['✨','💰','⭐'],14); sh.cap(`✨ ${n}! 가장 작은 유일 숫자! <b>${plainName(d.winner)}</b> 님이 판돈 ${fmt(d.pot)}원 획득!`,'good'); } });
       if(cnt===1){ sh.at(t0+i*step+2200,()=>sh.end()); return; }
     }
-    sh.at(t0+cols.length*step,()=>sh.cap('😱 겹치지 않은 숫자가 하나도 없어요! 참가비는 돌려드려요.','bad'));
-    sh.at(t0+cols.length*step+2000,()=>sh.end());
+    let t=t0+cols.length*step;
+    if(!d.tie){ sh.at(t,()=>sh.end()); return; }
+    // 겹치지 않은 숫자 없음 → 가장 작은 숫자 고른 사람들끼리 추첨 (seed로 모두 같은 장면)
+    const wc=cols.find(c=>+c.dataset.n===d.winNum);
+    sh.at(t,()=>{ cols.forEach(x=>x.classList.remove('scan')); if(wc){ wc.classList.remove('dead'); wc.classList.add('scan'); } burst(lotto,['❗','⚡'],8);
+      sh.cap(`😱 겹치지 않은 숫자가 없어요! 가장 작은 숫자 <b>${d.winNum}</b>번을 고른 ${d.tie.length}명 중 랜덤 추첨!`,'bad'); });
+    t+=1600; sh.at(t,()=>{ lotto.classList.add('show'); sh.cap('🎰 두구두구두구…'); });
+    const rnd=mulberry32(d.seed||1), n=cards.length, wi=d.tie.indexOf(d.winner);
+    const idx=Math.floor(rnd()*n), loops=3+Math.floor(rnd()*2), total=loops*n+((wi-idx+n)%n||n);
+    let tt=t+500;
+    for(let k=1;k<=total;k++){ const p=k/total; tt+=60+Math.pow(p,3)*520; const cur=(idx+k)%n; sh.at(tt,()=>cards.forEach((c,j)=>c.classList.toggle('on',j===cur))); }
+    t=tt+250;
+    sh.at(t,()=>{ lotto.classList.add('done'); burst(cards[wi],['🎉','✨','💰'],14); if(wc){ wc.classList.remove('scan'); wc.classList.add('win'); }
+      sh.cap(`🎉 당첨! <b>${plainName(d.winner)}</b> 님이 판돈 ${fmt(d.pot)}원 획득!`,'good'); });
+    sh.at(t+2200,()=>sh.end());
     return;
   }
   if(r.type==='auction'){
@@ -1927,8 +1984,8 @@ function cPick(k){ const g=S.game; if(!g.eligible.includes(ME.pid)) return; if(D
 function cConfirm(){ cSend(); }
 function cSend(){
   const g=S.game, prev=mySub.round===S.round?mySub.data:null; let a=$('#amt')?$('#amt').value:''; if(a===''&&prev) a=prev.a; const d={k:C_SEL,a};
-  const clean=validate('chest',d); if(!clean) return toast('1원 이상 걸 금액을 입력하세요');
-  if(clean.a>myMoney()) return toast(`보유금(${fmt(myMoney())}원)보다 많이 걸 수 없어요`);
+  const clean=validate('chest',d); if(!clean) return toast('100원 이상 걸 금액을 입력하세요');
+  const be=betCheck('chest',clean,myMoney(),g.params); if(be) return toast(BET_ERR(be));
   if(Date.now()-clockOffset<g.t0) return toast('상자를 섞는 중이에요!');
   mySub={round:S.round,data:clean};
   if(ME.isHost) hSubmit(ME.pid,clean); else if(CL&&CL.conn&&CL.conn.open) CL.conn.send({t:'act',round:S.round,data:clean}); else return toast('연결이 끊겨 확정하지 못했어요');
@@ -2209,8 +2266,8 @@ const PK_PROB=[1,8,28,56,70,56,28,8,1].map(x=>x/256);
 const pkCls=m=>m>=10?'m10':m>=3?'m3':m>=1?'m1':m>=0.7?'m07':'m04';
 function pkTableHTML(){ return `<div class="pk-tbl">${PK_MULT.map((m,i)=>`<div class="pk-cell ${pkCls(m)}"><b>${m}x</b><i>${(PK_PROB[i]*100).toFixed(1)}%</i></div>`).join('')}</div>
   <div class="muted rl-tip">위: 배수 · 아래: 씨앗이 그 칸에 들어갈 확률</div>`; }
-function pkTotal(){ const e=$('#pktotal'); if(!e) return; const c=+(SEL.pc||1), a=Math.max(0,Math.floor(Number(($('#amt')||{}).value)||0)), have=myMoney(), tot=a*c;
-  e.innerHTML=`씨앗 <b>${c}개</b> × ${fmt(a)}원 = 총 <b class="${tot>have?'down':''}">${fmt(tot)}원</b> / 보유금 ${fmt(have)}원 · 최대 <b class="up">${fmt(a*10*c)}원</b>${tot>have?' · <b class="down">보유금을 넘었어요!</b>':''}`; }
+function pkTotal(){ const e=$('#pktotal'); if(!e) return; const c=+(SEL.pc||1), a=Math.max(0,Math.floor(Number(($('#amt')||{}).value)||0)), have=myLimit(), tot=a*c;
+  e.innerHTML=`씨앗 <b>${c}개</b> × ${fmt(a)}원 = 총 <b class="${tot>have?'down':''}">${fmt(tot)}원</b> / ${limitWord()} ${fmt(have)}원 · 최대 <b class="up">${fmt(a*10*c)}원</b>${tot>have?' · <b class="down">'+limitWord()+'을 넘었어요!</b>':''}`; }
 function pkStageHTML(d){
   const total=d.rows.reduce((t,x)=>t+x.c,0);
   return `<div class="pk-wrap"><canvas id="pkcv"></canvas></div>
@@ -2294,8 +2351,8 @@ function lottoPick(n){
   document.querySelectorAll('[data-ln]').forEach(b=>b.classList.toggle('active',SEL.ln.includes(+b.dataset.ln)));
   lottoTotal();
 }
-function lottoTotal(){ const e=$('#lttotal'); if(!e) return; const k=(SEL.ln||[]).length, a=Math.max(0,Math.floor(Number(($('#amt')||{}).value)||0)), have=myMoney(), tot=a*k;
-  e.innerHTML=k?`고른 숫자 <b>${SEL.ln.join(', ')}</b> · 총 베팅 <b class="${tot>have?'down':''}">${fmt(tot)}원</b> (${fmt(a)} × ${k}) / 보유금 ${fmt(have)}원 · 1개 적중 시 <b class="up">${fmt(Math.floor(a*LOTTO_MULT))}원</b> 받음${tot>have?' · <b class="down">보유금을 넘었어요!</b>':''}`:'숫자를 골라주세요'; }
+function lottoTotal(){ const e=$('#lttotal'); if(!e) return; const k=(SEL.ln||[]).length, a=Math.max(0,Math.floor(Number(($('#amt')||{}).value)||0)), have=myLimit(), tot=a*k;
+  e.innerHTML=k?`고른 숫자 <b>${SEL.ln.join(', ')}</b> · 총 베팅 <b class="${tot>have?'down':''}">${fmt(tot)}원</b> (${fmt(a)} × ${k}) / ${limitWord()} ${fmt(have)}원 · 1개 적중 시 <b class="up">${fmt(Math.floor(a*LOTTO_MULT))}원</b> 받음${tot>have?' · <b class="down">'+limitWord()+'을 넘었어요!</b>':''}`:'숫자를 골라주세요'; }
 function lottoStageHTML(d){
   return `<div class="lt-machine"><canvas id="ltcv"></canvas><div class="lt-out" id="ltout"></div></div>
     <div class="evcap" id="ltcap">🌀 추첨기가 돌아갑니다…</div><button class="btn sm ghost" id="skipLotto">결과 바로 보기 ⏭</button>`;
@@ -2562,7 +2619,7 @@ function rlInputHTML(g){
     <button class="btn big gold" id="submitBtn">베팅 확정</button>`;
 }
 function rlTotal(){ const e=$('#rltotal'); if(!e) return; let t=0; document.querySelectorAll('[data-amt]').forEach(i=>t+=Math.max(0,Math.floor(Number(i.value)||0)));
-  const have=myMoney(); e.innerHTML=`베팅 합계 <b class="${t>have?'down':''}">${fmt(t)}원</b> / 보유금 ${fmt(have)}원${t>have?' · <b class="down">보유금을 넘었어요!</b>':''}`; }
+  const have=myLimit(); e.innerHTML=`베팅 합계 <b class="${t>have?'down':''}">${fmt(t)}원</b> / ${limitWord()} ${fmt(have)}원${t>have?' · <b class="down">'+limitWord()+'을 넘었어요!</b>':''}`; }
 function rlSyncAmounts(){ document.querySelectorAll('[data-amt]').forEach(i=>{ const k=i.dataset.amt; if(SEL.rl&&SEL.rl[k]) SEL.rl[k].a=i.value; }); }
 function rlPick(k,v){
   rlSyncAmounts(); SEL.rl=SEL.rl||{};
