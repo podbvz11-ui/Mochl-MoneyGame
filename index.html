@@ -51,20 +51,6 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 @media(max-width:860px){.grid{grid-template-columns:1fr}}
 .stage h2{margin:0 0 6px}
 .board h3{margin:0 0 10px}
-.side{display:flex;flex-direction:column;gap:16px;min-width:0}
-.chat{padding:14px 16px}
-.chat h3{margin:0 0 8px;display:flex;align-items:center;gap:6px;font-size:16px}.chat h3 .muted{font-size:12px;font-weight:500}.chat h3 .btn{margin-left:auto;padding:4px 10px;font-size:12px}
-.chat-log{height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding:4px 2px;font-size:14px;overscroll-behavior:contain}
-.cm{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,.04);word-break:break-all}
-.cm.mine{background:rgba(245,197,66,.12)}
-.cm-n{font-weight:800;color:var(--gold);font-size:13px}.cm.mine .cm-n{color:#ffe08a}
-.cm-t{flex:1 1 auto;color:var(--text)}
-.cm-time{font-size:10px;color:var(--muted);margin-left:auto}
-.cm-empty{padding:10px;text-align:center;font-size:13px}
-.chat-in{display:flex;gap:6px;margin-top:8px}
-.chat-in input{flex:1;min-width:0;background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:9px 12px;font-size:14px}
-.chat.fold .chat-log,.chat.fold .chat-in{display:none}.chat.fold h3{margin:0}
-@media(max-width:860px){.chat-log{height:180px}}
 /* 협력/배신 짝 발표 */
 .pd-intro{margin:0 0 12px;padding:12px;border-radius:12px;background:#1b2436}
 .pd-intro.on{background:linear-gradient(180deg,#2b1a3a,#1a1226);border:2px solid #7b4bb0;animation:capPop .4s ease-out}
@@ -77,6 +63,19 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
 .pd-intro.on .pi-pair{opacity:0;animation:capPop .35s ease-out forwards;animation-delay:calc(var(--i) * .25s + .3s)}
 .pi-pair.me{outline:2px solid var(--gold);background:#3a3110}
 .pi-p{display:inline-flex;align-items:center;gap:4px}.pi-x{opacity:.7}
+/* 심리전 신호 */
+.pdsig{margin:0 0 14px;padding:12px;border-radius:12px;background:#1d1a2c;border:1px dashed #6d5aa8}
+.ps-h{font-weight:800;margin-bottom:8px}.ps-h .muted{font-weight:500;font-size:12px}.ps-h.real{margin-top:2px}
+.ps-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ps-btn{padding:10px 6px;font-size:15px}
+.ps-btn.on[data-sig="C"]{background:#173a28;border-color:var(--green);box-shadow:0 0 0 2px var(--green) inset}
+.ps-btn.on[data-sig="B"]{background:#3a1720;border-color:var(--red);box-shadow:0 0 0 2px var(--red) inset}
+.ps-view{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.ps-cell{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.04);font-size:14px}.ps-cell .muted{font-size:12px}
+.ps-cell.opp{background:rgba(123,75,176,.18)}
+.ps-cell.flash{animation:capPop .5s ease-out}
+.pd-sig{font-size:12px;color:#cdb8f5;margin:2px 0 4px}
+.pill.bluff{background:#4a1f3a;color:#ffb3d9;font-size:11px;white-space:nowrap}
 /* board */
 .row{display:grid;grid-template-columns:28px 1fr auto auto;gap:8px;align-items:center;padding:8px 6px;border-bottom:1px solid #222838;font-size:15px}
 .row.me{background:rgba(245,197,66,.08);border-radius:8px}
@@ -641,7 +640,7 @@ const AVATAR_FEVER=["data:image/webp;base64,UklGRpgtAABXRUJQVlA4WAoAAAAQAAAA9gAA
 const GAMES = {
   unique:  { name:'최소 유일 숫자', icon:'🔢', stk:'think', desc:'참가비를 내고 1~50 중 숫자 하나를 고르세요. 다른 사람과 겹치지 않는 숫자 중 가장 작은 숫자를 고른 사람이 판돈을 모두 가져갑니다. 겹치지 않은 숫자가 하나도 없으면 가장 작은 숫자를 고른 사람들끼리 랜덤 추첨!' },
   auction: { name:'눈치 경매', icon:'📦', stk:'box', desc:'상자 안에는 판돈 기준 금액(참가자 보유금 중앙값)의 -100% ~ 500% 사이 금액이 들어 있어요. 가장 높은 금액을 쓴 사람이 상자를 가져가요. 단, 입찰한 금액은 1등이 아니어도 모두 내야 하고 돌려받지 못해요! (최고가가 동점이면 동점자 중 랜덤 추첨)' },
-  pd:      { name:'협력 / 배신', icon:'🤝', stk:'heart', desc:'랜덤으로 짝을 지어요. 짝이 먼저 발표되고, 상대를 확인한 뒤 협력/배신을 골라요. 둘 다 협력하면 둘 다 이득, 둘 다 배신하면 둘 다 손해, 한 명만 배신하면 배신자가 크게 벌고 협력한 쪽이 크게 잃어요.' },
+  pd:      { name:'협력 / 배신', icon:'🤝', stk:'heart', desc:'랜덤으로 짝을 지어요. 짝이 발표되면 짝에게만 보이는 심리전 신호를 보내고, 따로 실제 선택을 해요. 둘 다 협력하면 둘 다 이득, 둘 다 배신하면 둘 다 손해, 한 명만 배신하면 배신자가 크게 벌고 협력한 쪽이 크게 잃어요.' },
   race:    { name:'경마 베팅', icon:'🏇', stk:'flyCape', desc:'말 한 마리에 원하는 만큼 거세요. 1등이면 우승 배당, 2~3등 안에 들면 입상 배당만큼 돌려받아요. (5~8마리면 2등까지, 4마리 이하면 1등만)' },
   duel:    { name:'1:1 대결', icon:'⚔️', stk:'boxRed', desc:'랜덤으로 짝을 지어 가위바위보! 각자 금액을 쓰면 둘 중 더 적은 금액이 판돈이 되고, 이긴 사람이 진 사람에게서 판돈만큼 가져갑니다. (내가 건 금액 이상은 잃지 않아요)' }
   ,roulette:{ name:'룰렛', icon:'🎡', stk:'excited', desc:'유럽식 룰렛(0~36). 색·홀짝·낮음/높음·구간·숫자에 걸어 결과를 맞혀요. 항목마다 하나씩, 여러 항목에 동시에 걸 수 있어요. 0이 나오면 숫자 0 외에는 모두 실패!' }
@@ -1033,7 +1032,29 @@ function newState(code,title,hostPid,hostName){
 }
 let bcTimer=null;
 // 순위만 공개 모드: 받는 사람(pid) 이외 참가자의 보유금·빚·손익·베팅액·보상을 상태에서 삭제 (최종 결과 때만 공개)
-function redactFor(src,pid){
+function redactFor(src,pid){ return stripSig(redactMoney(src,pid),pid); }
+// 협력/배신 신호는 나와 내 짝 것만 보이게 (나머지는 상태에서 삭제)
+function stripSig(s,pid){
+  const g=s&&s.game; if(!g||!g.signals) return s;
+  const pr=(g.params.pairs||[]).find(p=>p.includes(pid)), keep=pr?pr:[];
+  for(const k of Object.keys(g.signals)) if(!keep.includes(k)) delete g.signals[k];
+  return s;
+}
+function hSignal(pid,c){
+  const st=HOST.state, g=st.game;
+  if(st.phase!=='play'||!g||g.type!=='pd'||(c!=='C'&&c!=='B')) return;
+  if(pid!=='BOT'&&!g.eligible.includes(pid)) return;
+  if(Date.now()<g.params.t0-200) return;
+  HOST.sigAt=HOST.sigAt||{}; const now=Date.now(); if(pid!=='BOT'&&now-(HOST.sigAt[pid]||0)<500) return; HOST.sigAt[pid]=now;
+  g.signals=g.signals||{}; const prev=g.signals[pid]; if(prev&&prev.c===c) return;
+  g.signals[pid]={ c, n:prev?prev.n+1:0 }; changed();
+}
+// 컴퓨터: 짝의 신호를 보고 실제 선택 (배신 신호를 받으면 배신 확률 ↑)
+function botPdMove(id){
+  const g=HOST.state.game, pr=g.params.pairs.find(p=>p.includes(id)), opp=pr?(pr[0]===id?pr[1]:pr[0]):null, os=(g.signals||{})[opp];
+  const pc=!os?0.55:os.c==='B'?0.3:0.62; return { c: Math.random()<pc?'C':'B' };
+}
+function redactMoney(src,pid){
   if(!src||!src.settings||!src.settings.hideMoney||src.phase==='final') return JSON.parse(JSON.stringify(src));
   const s=JSON.parse(JSON.stringify(src)), P=src.players||{}, ids=Object.keys(P);
   const nw=p=>p.money-(p.debt||0), pw=p=>p.prev?p.prev.m-p.prev.d:nw(p);
@@ -1084,10 +1105,10 @@ function onHostData(conn,d){
     HOST.conns.set(conn,pid);
     if(st.players[pid]) st.players[pid].online=true;
     else st.players[pid]={ name:uniqueName(cleanName(d.name),pid), money:st.settings.startMoney, online:true, last:0, av:pickAv() };
-    try{ conn.send({t:'welcome',pid}); conn.send({t:'chatlog',list:HOST.chat||[]}); }catch(e){}
+    try{ conn.send({t:'welcome',pid}); }catch(e){}
     changed(); return;
   }
-  if(d.t==='chat'){ const pid=HOST.conns.get(conn); if(pid) hChat(pid,d.text); return; }
+  if(d.t==='sig'){ const pid=HOST.conns.get(conn); if(pid&&d.round===st.round) hSignal(pid,d.c); return; }
   if(d.t==='act'){
     const pid=HOST.conns.get(conn);
     if(pid&&d.round===st.round) hSubmit(pid,d.data);
@@ -1157,12 +1178,18 @@ function setBots(n){
 }
 function scheduleBots(){
   const st=HOST.state, g=st.game, round=st.round;
+  if(g.type==='pd'){   // 컴퓨터·딜러도 심리전 신호를 보냄 (가끔 마음을 바꿈)
+    const base=g.params.t0-Date.now(), who=g.eligible.filter(id=>st.players[id]&&st.players[id].bot).concat(g.params.pairs.some(p=>p.includes('BOT'))?['BOT']:[]);
+    who.forEach(id=>{ if(Math.random()<0.15) return; const c=Math.random()<0.72?'C':'B';
+      setTimeout(()=>{ if(HOST.state.round===round&&HOST.state.phase==='play') hSignal(id,c); },base+400+Math.random()*4000);
+      if(Math.random()<0.3) setTimeout(()=>{ if(HOST.state.round===round&&HOST.state.phase==='play') hSignal(id,c==='C'?'B':'C'); },base+5000+Math.random()*5000); });
+  }
   const maxWait=Math.min(st.settings.timer*600,12000);
   g.eligible.filter(id=>st.players[id]&&st.players[id].bot).forEach(id=>{
     setTimeout(()=>{
       if(HOST.state.round!==round||HOST.state.phase!=='play'||!st.players[id]) return;
-      hSubmit(id,clampMove(g.type,botMove(g.type,st.players[id].money,g.params),st.players[id].money,g.params));
-    },g.type==='chest'?(g.t0-Date.now())+800+Math.random()*Math.min(9000,(g.deadline-g.t0)*0.6):g.type==='shell'?(g.params.t0+g.params.show+g.params.shuf-Date.now())+400+Math.random()*g.params.pick*0.6:(g.type==='pd'?g.params.t0-Date.now():0)+1500+Math.random()*Math.max(0,maxWait-1500));
+      hSubmit(id,g.type==='pd'?botPdMove(id):clampMove(g.type,botMove(g.type,st.players[id].money,g.params),st.players[id].money,g.params));
+    },g.type==='chest'?(g.t0-Date.now())+800+Math.random()*Math.min(9000,(g.deadline-g.t0)*0.6):g.type==='shell'?(g.params.t0+g.params.show+g.params.shuf-Date.now())+400+Math.random()*g.params.pick*0.6:1500+Math.random()*Math.max(0,maxWait-1500));
   });
 }
 function createSingle(name,botCount){
@@ -1322,6 +1349,7 @@ function hClose(){
     ?{ deltas:minesSettle(g.params.fee,g.order.filter(id=>st.players[id]),g.alive.filter(id=>st.players[id])),
        detail:{ order:g.order, alive:g.alive.slice(), elim:g.elim, board:g.board.map((v,i)=>v?{...v}:{mine:HOST.subs.__mines.includes(i)}), mines:HOST.subs.__mines.slice(), fee:g.params.fee, final:g.final } }
     :resolve(g.type,g.params,Object.fromEntries(Object.entries(HOST.subs).filter(([k])=>!k.startsWith('__'))));
+  if(g.type==='pd') res.detail.sigs=Object.fromEntries(Object.entries(g.signals||{}).map(([k,v])=>[k,v.c]));
   for(const p of Object.values(st.players)){ p.last=0; p.prev={ m:p.money, d:p.debt||0 }; }
   const loans={}, unit=st.settings.startMoney;
   for(const [id,d] of Object.entries(res.deltas)){ const p=st.players[id]; if(!p) continue;
@@ -1395,8 +1423,6 @@ function joinRoom(code,name){
 function onClientData(d){
   if(d.t==='state'){ clockOffset=Date.now()-d.now; S=d.s; if(S.phase==='lobby') mySub={round:-1,data:null}; render(); }
   else if(d.t==='welcome'){ ME.pid=d.pid; }
-  else if(d.t==='chatlog'){ CHAT=Array.isArray(d.list)?d.list.slice(-CHAT_MAX):[]; renderChat(true); }
-  else if(d.t==='chat'){ if(d.m) addChat(d.m); }
   else if(d.t==='kicked'){ kicked=true; S=null; showCenter('방장이 이 방에서 내보냈어요.'); }
   else if(d.t==='closed'){ kicked=true; S=null; try{ CL&&CL.peer&&CL.peer.destroy(); }catch(e){} showCenter(`${stk('wave','rx')}방장이 방을 닫았어요.<br><span class="muted">방장이 같은 방을 다시 열면 이 링크로 다시 들어올 수 있어요.</span><br><br><button class="btn" onclick="location.reload()">다시 접속해 보기</button> <button class="btn" onclick="location.href=baseUrl()">처음 화면으로</button>`); }
 }
@@ -1451,7 +1477,7 @@ function shell(){
       : `<div class="room"><div><div class="code-label">방 코드</div><div class="code" id="hCode"></div></div><div class="rbtns">${ME.isHost?'<button class="btn sm" id="copyLink">참여 링크 복사</button><button class="btn sm" id="homeBtn">처음으로</button>':''}</div></div>`}
   </header>
   <div id="banner" class="banner hidden"></div>
-  <main class="grid"><section class="card stage" id="stage"></section><aside class="side"><div class="card board"><h3>💸 순위</h3><div id="board"></div></div>${chatShellHTML()}</aside></main>`;
+  <main class="grid"><section class="card stage" id="stage"></section><aside class="card board"><h3>💸 순위</h3><div id="board"></div></aside></main>`;
 }
 let BG_CUR=null;
 // 새 방 배경: 직전 방들과 겹치지 않게 무작위 선택
@@ -1459,62 +1485,6 @@ function pickRoomBg(){ let recent=[]; try{ recent=JSON.parse(localStorage.getIte
   const pool=BG_IMGS.map((_,i)=>i).filter(i=>!recent.includes(i)); const i=pool[Math.floor(Math.random()*pool.length)];
   try{ localStorage.setItem('msurv-bgs',JSON.stringify([i,...recent].slice(0,5))); }catch(e){} return i; }
 function setBg(i){ if(i===BG_CUR||i==null) return; BG_CUR=i; document.body.style.setProperty('--roombg',`url(${BG_IMGS[i%BG_IMGS.length]})`); document.body.classList.add('hasbg'); }
-/* ===== 실시간 채팅 ===== 방장이 모든 메시지를 받아서 전체에 전달 (최근 80개 보관) */
-const CHAT_MAX=80, CHAT_LEN=100;
-let CHAT=[], chatUnread=0;
-function hChat(pid,text){
-  const st=HOST.state, p=st.players[pid]; if(!p) return;
-  text=String(text==null?'':text).replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,CHAT_LEN); if(!text) return;
-  HOST.chatAt=HOST.chatAt||{}; const now=Date.now(); if(now-(HOST.chatAt[pid]||0)<700) return;   // 도배 방지: 0.7초에 1개
-  HOST.chatAt[pid]=now;
-  const m={ id:pid, name:p.name, text, ts:now, host:pid===st.hostId, bot:!!p.bot };
-  HOST.chat=HOST.chat||[]; HOST.chat.push(m); if(HOST.chat.length>CHAT_MAX) HOST.chat.shift();
-  for(const c of HOST.conns.keys()) if(c.open) try{ c.send({t:'chat',m}); }catch(e){}
-  addChat(m);
-}
-function sendChat(){
-  const inp=$('#chatIn'); if(!inp) return; const text=inp.value.trim().slice(0,CHAT_LEN); if(!text) return;
-  const now=Date.now(); if(now-(window.__chatLast||0)<750) return toast('채팅은 조금 천천히 보내주세요'); window.__chatLast=now;
-  if(ME.isHost&&HOST) hChat(ME.pid,text);
-  else if(CL&&CL.conn&&CL.conn.open) CL.conn.send({t:'chat',text});
-  else return toast('연결이 끊겨 채팅을 보내지 못했어요');
-  inp.value=''; inp.focus();
-}
-function addChat(m){ CHAT.push(m); if(CHAT.length>CHAT_MAX) CHAT.shift(); renderChat(false,m); }
-function chatLine(m){
-  const t=new Date(m.ts), hh=String(t.getHours()).padStart(2,'0'), mm=String(t.getMinutes()).padStart(2,'0');
-  return `<div class="cm ${m.id===ME.pid?'mine':''}"><span class="cm-n">${m.host?'🎙️':m.bot?'🤖':''}${esc(m.name)}</span><span class="cm-t">${esc(m.text)}</span><span class="cm-time">${hh}:${mm}</span></div>`;
-}
-function chatShellHTML(){
-  return `<div class="card chat" id="chatBox"><h3>💬 채팅 <span class="muted" id="chatCnt"></span><button class="btn sm ghost" id="chatFold">접기</button></h3>
-    <div class="chat-log" id="chatLog"></div>
-    <div class="chat-in"><input id="chatIn" maxlength="${CHAT_LEN}" placeholder="메시지 입력 (Enter로 전송)" autocomplete="off"><button class="btn sm gold" id="chatSend">전송</button></div></div>`;
-}
-function chatFolded(){ try{ return localStorage.getItem('msurv-chatfold')==='1'; }catch(e){ return false; } }
-function bindChat(){
-  const inp=$('#chatIn'); if(!inp) return;
-  inp.onkeydown=e=>{ if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229){ e.preventDefault(); sendChat(); } };
-  $('#chatSend').onclick=sendChat;
-  const box=$('#chatBox'); box.classList.toggle('fold',chatFolded());
-  $('#chatFold').onclick=()=>{ const f=!box.classList.contains('fold'); box.classList.toggle('fold',f); try{ localStorage.setItem('msurv-chatfold',f?'1':'0'); }catch(e){} chatUnread=0; renderChat(true); };
-}
-function renderChat(full,m){
-  const log=$('#chatLog'); if(!log) return;
-  const box=$('#chatBox'), folded=box&&box.classList.contains('fold');
-  if(full) log.innerHTML=CHAT.length?CHAT.map(chatLine).join(''):'<div class="muted cm-empty">아직 메시지가 없어요. 첫 인사를 남겨보세요! 👋</div>';
-  else if(m){ const e=log.querySelector('.cm-empty'); if(e) e.remove(); const near=log.scrollHeight-log.scrollTop-log.clientHeight<60; log.insertAdjacentHTML('beforeend',chatLine(m)); while(log.children.length>CHAT_MAX) log.firstChild.remove(); if(folded&&m.id!==ME.pid) chatUnread++; if(!near&&!full&&m.id!==ME.pid){ /* 위로 스크롤해 읽는 중이면 그대로 둠 */ } else log.scrollTop=log.scrollHeight; }
-  if(full) log.scrollTop=log.scrollHeight;
-  const cnt=$('#chatCnt'); if(cnt) cnt.textContent=folded&&chatUnread?`· 새 메시지 ${chatUnread}개`:'';
-  const fb=$('#chatFold'); if(fb) fb.textContent=folded?'펼치기':'접기';
-}
-// 싱글 모드: 결과가 나오면 컴퓨터가 가끔 한마디
-const BOT_LINES={ win:['ㅋㅋㅋ 개꿀','오예~ 🎉','이게 되네?','역시 나야','감사합니다 ㅎㅎ'], lose:['아 망했다 ㅠㅠ','다음 판에 복구한다','이건 말이 안 돼','ㅠㅠㅠ','눈물 좀 닦고 올게요'], none:['흠…','다음 판 뭐하지','긴장된다','다들 잘하네']};
-function botBanter(){
-  const st=HOST.state; if(!st.result) return; const r=st.round;
-  Object.entries(st.players).filter(([,p])=>p.bot).forEach(([id])=>{ if(Math.random()>0.22) return;
-    const d=st.result.deltas[id]||0, pool=BOT_LINES[d>0?'win':d<0?'lose':'none'];
-    setTimeout(()=>{ if(HOST&&HOST.state.round===r) hChat(id,pool[Math.floor(Math.random()*pool.length)]); },1500+Math.random()*5000); });
-}
 function render(){
   if(!S) return;
   if(S.bg==null&&ME.isHost&&HOST){ HOST.state.bg=pickRoomBg(); S.bg=HOST.state.bg; }   // 예전 방 복구 시
@@ -1531,7 +1501,6 @@ function render(){
       setTimeout(()=>{ try{ if(HOST&&HOST.peer) HOST.peer.destroy(); }catch(e){} location.href=baseUrl(); },S.single?0:400); };
     if($('#copyLink')) $('#copyLink').onclick=()=>{ const url=baseUrl()+'?room='+S.code; (navigator.clipboard?navigator.clipboard.writeText(url):Promise.reject()).then(()=>toast('참여 링크를 복사했어요'),()=>prompt('이 링크를 복사하세요',url)); };
     $('#board').onclick=e=>{ const k=e.target.closest('[data-kick]'); if(k&&ME.isHost) hKick(k.dataset.kick); };
-    bindChat(); renderChat(true);
   }
   const key=stageKey();
   if(key!==lastKey){ lastKey=key; SEL={}; RACING=false; $('#stage').innerHTML=stageHTML().replace(/🔒원/g,'🔒'); bindStage(); afterStage(); }
@@ -1583,6 +1552,7 @@ function updateDynamic(){
     if(g.type==='bomb') bUpdate();
     if(g.type==='react') rUpdate();
     if(g.type==='chest') cUpdate();
+    if(g.type==='pd') pdSigUpdate();
     if(g.type==='roulette'||g.type==='dice'||g.type==='lotto') document.querySelectorAll('[data-ck]').forEach(e=>{ const c=(g.stats||{})[e.dataset.ck]; e.textContent=c?c+'명':''; });
     tick();
   }
@@ -1597,7 +1567,6 @@ function tick(){
   const rem=Math.max(0,Math.ceil((S.game.deadline-(Date.now()-clockOffset))/1000));
   el.textContent=rem>0?rem+'초':'마감!'; el.classList.toggle('urgent',rem<=5);
 }
-{ const __hClose=hClose; hClose=function(){ const was=HOST&&HOST.state.phase==='play'; __hClose(); if(was&&HOST.single&&HOST.state.phase!=='play') botBanter(); }; }
 setInterval(()=>{ tick(); if(HOST&&HOST.state.phase==='play'&&Date.now()>=HOST.state.game.deadline) hClose();
   // 지뢰찾기: 시간 안에 못 고르면 무작위 칸 자동 선택
   if(HOST&&HOST.state.phase==='play'){ const g=HOST.state.game; if(g.type==='mines'&&g.cur&&Date.now()>g.turnDeadline+300) mPick(g.cur,mRandomCell(g),true); }
@@ -1646,6 +1615,29 @@ function pdPairsHTML(g){
     ${intro&&opp?`<div class="pi-me">${avTag(ME.pid)}<b>나</b><span class="pi-heart">💞</span>${avTag(opp)}<b>${plainName(opp)}</b></div>`:''}
     <div class="pi-list">${list}</div></div>`;
 }
+// 심리전 신호: 짝에게만 보이는 '말'. 실제 선택과 달라도 됨
+function pdSigHTML(opp){
+  return `<div class="pdsig"><div class="ps-h">📢 심리전 신호 <span class="muted">— 짝에게만 보여요 · 실제 선택과 달라도 돼요 · 마감 전까지 몇 번이든 바꿀 수 있어요</span></div>
+    <div class="ps-row"><button class="btn ps-btn" data-sig="C">🤝 "나 협력할게!"</button><button class="btn ps-btn" data-sig="B">🗡️ "나 배신할 거야"</button></div>
+    <div class="ps-view"><div class="ps-cell"><span class="muted">내 신호</span><b id="psMine">아직 안 보냄</b></div><div class="ps-cell opp" id="psOppBox"><span class="muted">${plainName(opp)}의 신호</span><b id="psOpp">아직 없음…</b></div></div></div>`;
+}
+const SIG_TXT={C:'🤝 "협력할게!"',B:'🗡️ "배신할 거야"'};
+let PS_LAST=null;
+function pdSigUpdate(){
+  const g=S.game, sg=g.signals||{}, opp=myOpponent(g), mine=sg[ME.pid], os=opp?sg[opp]:null;
+  const m=$('#psMine'), o=$('#psOpp'); if(!m) return;
+  m.textContent=mine?SIG_TXT[mine.c]:'아직 안 보냄'; m.className=mine?(mine.c==='C'?'up':'down'):'';
+  document.querySelectorAll('[data-sig]').forEach(b=>b.classList.toggle('on',!!mine&&b.dataset.sig===mine.c));
+  o.textContent=os?SIG_TXT[os.c]+(os.n?` (${os.n}번 바꿈)`:''):'아직 없음…'; o.className=os?(os.c==='C'?'up':'down'):'';
+  const key=os?os.c+os.n:''; if(key&&key!==PS_LAST){ const bx=$('#psOppBox'); if(bx){ bx.classList.remove('flash'); void bx.offsetWidth; bx.classList.add('flash'); } } PS_LAST=key;
+}
+function sendSig(c){
+  const g=S.game; if(!g||g.type!=='pd'||pdIntro(g)) return;
+  const now=Date.now(); if(now-(window.__sigLast||0)<600) return; window.__sigLast=now;
+  if(ME.isHost) hSignal(ME.pid,c);
+  else if(CL&&CL.conn&&CL.conn.open) CL.conn.send({t:'sig',round:S.round,c});
+  else toast('연결이 끊겨 신호를 보내지 못했어요');
+}
 function vsHTML(g,opp){
   if(g.type==='duel') return `<div class="vs duelvs"><div class="vside">${stk('boxRed','vimg')}<b>${nameOf(ME.pid)}</b></div><div class="vsx">VS</div><div class="vside r"><b>${nameOf(opp)}</b>${stk('boxPurple','vimg flip')}</div></div>`;
   return `<div class="vs">🤝 이번 짝: <b>${nameOf(opp)}</b> <span class="muted">— 상대는 무엇을 고를까요?</span></div>`;
@@ -1687,12 +1679,13 @@ function playHTML(){
   let body;
   if(!elig) body=`<div class="wait">이번 라운드가 시작된 뒤에 들어오셔서 관전 중이에요. 다음 라운드부터 참여할 수 있어요.</div>`;
   else if(done) body=`<div class="done">${stk('book','rx sm')}✅ 제출 완료 — ${describeSub(g.type,mySub.data)}<br><span class="muted">마감되면 결과가 공개돼요.</span></div>`;
-  else if(pdIntro(g)) body=`<div class="wait">⏳ 짝이 정해졌어요! 잠시 후 협력/배신을 고를 수 있어요.</div>`;
+  else if(pdIntro(g)) body=`<div class="wait">⏳ 짝이 정해졌어요! 잠시 후 신호를 보내고 협력/배신을 고를 수 있어요.</div>`;
   else body=inputHTML(g);
   return `<div class="ghead"><div class="gicon">${gimg(G)}</div><div><div class="gname">라운드 ${S.round} · ${G.name}</div><div class="gdesc">${G.desc}${extra}</div></div></div>
     <div class="timerbar"><div class="timer" id="timer">--</div><div class="muted" id="subcount"></div></div>
     ${g.type==='pd'?pdPairsHTML(g):''}
     ${opp?vsHTML(g,opp):''}
+    ${g.type==='pd'&&opp&&!pdIntro(g)?pdSigHTML(opp):''}
     ${g.type==='shell'?shellStageHTML(g,done):''}
     ${body}
     ${ME.isHost?`<button class="btn ghost" id="closeBtn">⏹ 지금 마감하기</button>`:''}`;
@@ -1706,7 +1699,7 @@ function inputHTML(g){
   switch(g.type){
     case 'unique': return `<div class="numgrid">${Array.from({length:50},(_,i)=>`<button class="btn" data-grp="n" data-sel="${i+1}">${i+1}</button>`).join('')}</div><button class="btn big gold" id="submitBtn">제출</button>`;
     case 'auction': return `${amtInput('입찰 금액')}<button class="btn big gold" id="submitBtn">입찰하기</button>`;
-    case 'pd': return `<div class="pdgrid"><button class="btn pdbtn" data-pd="C">${stk('hugHeart','pdimg')}🤝 협력<small>함께 이득을 노린다</small></button><button class="btn pdbtn" data-pd="B">${stk('angry','pdimg')}🗡️ 배신<small>혼자 크게 먹는다</small></button></div>`;
+    case 'pd': return `<div class="ps-h real">🔒 실제 선택 <span class="muted">— 결과 공개 전까지 아무도 몰라요 · 한 번 고르면 바꿀 수 없어요</span></div><div class="pdgrid"><button class="btn pdbtn" data-pd="C">${stk('hugHeart','pdimg')}🤝 협력<small>함께 이득을 노린다</small></button><button class="btn pdbtn" data-pd="B">${stk('angry','pdimg')}🗡️ 배신<small>혼자 크게 먹는다</small></button></div>`;
     case 'race': return `<div class="horses">${g.params.runners.map((h,i)=>`<button class="btn horse-opt" data-grp="h" data-sel="${i}"><img src="${AVATAR_SRC[h.av]}" alt=""><span class="ho-t"><b>${i+1}번 ${esc(h.name)}</b><span class="muted">우승 <b class="odds">${h.odds}배</b>${h.pl?` · ${raceK(g.params.runners.length)>2?'2~3등':'2등'} <b class="odds">${h.pl}배</b>`:''} · 우승 확률 ${Math.max(1,Math.round(h.p*100))}%</span></span></button>`).join('')}</div>${amtInput('걸 금액')}<button class="btn big gold" id="submitBtn">베팅하기</button>`;
     case 'plinko': return `${pkTableHTML()}
         <label>해바라기씨 개수</label><div class="pk-cnt">${Array.from({length:PK_MAXBALL},(_,i)=>i+1).map(n=>`<button class="btn sm ${n===1?'active':''}" data-grp="pc" data-sel="${n}">${n}</button>`).join('')}</div>
@@ -1737,6 +1730,7 @@ function bindStage(){
     if(t.id==='resetBtn') return hReset();
     if(t.dataset.game) return hStartRound(t.dataset.game);
     if(t.dataset.grp){ st.querySelectorAll(`[data-grp="${t.dataset.grp}"]`).forEach(b=>b.classList.toggle('active',b===t)); SEL[t.dataset.grp]=t.dataset.sel; if(t.dataset.grp==='pc') pkTotal(); return; }
+    if(t.dataset.sig) return sendSig(t.dataset.sig);
     if(t.dataset.pd) return submit({c:t.dataset.pd});
     if(t.dataset.mc) return mClick(+t.dataset.mc);
     if(t.dataset.bt) return bClick(t.dataset.bt);
@@ -1803,13 +1797,14 @@ function resultBodyOld(r){
   }
   if(r.type==='pd'){
     const face=(me,ot)=>me==='C'&&ot==='C'?'hugHeart':me==='B'&&ot==='C'?'laugh':me==='C'?'cryPuddle':'angry';
-    const lab=(c,m)=>(c==='C'?'🤝 협력':'🗡️ 배신')+(m?' <span class="muted">(미제출)</span>':'');
+    const sgl=id=>{ const v=(d.sigs||{})[id]; return `<span class="muted">📢 ${v?(v==='C'?'협력':'배신')+' 신호':'신호 없음'} →</span> `; };
+    const lab=(c,m,id)=>sgl(id)+(c==='C'?'🤝 협력':'🗡️ 배신')+(m?' <span class="muted">(미제출)</span>':'')+((d.sigs||{})[id]&&(d.sigs||{})[id]!==c?' <span class="pill bluff">😈 블러핑</span>':'');
     const sum=d.rows.reduce((a,x)=>{ const k=x.ca===x.cb?(x.ca==='C'?'cc':'bb'):'cb'; a[k]++; return a; },{cc:0,bb:0,cb:0});
     return `<div class="announce pdsum">${stk(sum.cb>=sum.cc&&sum.cb>=sum.bb?'laugh':sum.cc>=sum.bb?'love':'angry')}🤝 함께 협력 <b>${sum.cc}</b>쌍 · 🗡️ 배신 성공 <b>${sum.cb}</b>쌍 · 💥 서로 배신 <b>${sum.bb}</b>쌍</div>
       <div class="sec">짝별 결과</div>`+d.rows.map(x=>`<div class="match">
-        <div class="mside">${stk(face(x.ca,x.cb),'mstk')}<div>${nameOf(x.a)}<br>${lab(x.ca,x.ma)} <b class="${x.da>0?'up':'down'}">${signed(x.da)}</b></div></div>
+        <div class="mside">${stk(face(x.ca,x.cb),'mstk')}<div>${nameOf(x.a)}<br>${lab(x.ca,x.ma,x.a)} <b class="${x.da>0?'up':'down'}">${signed(x.da)}</b></div></div>
         <div class="c">VS</div>
-        <div class="mside r"><div>${nameOf(x.b)}<br><b class="${x.db>0?'up':'down'}">${signed(x.db)}</b> ${lab(x.cb,x.mb)}</div>${stk(face(x.cb,x.ca),'mstk')}</div></div>`).join('');
+        <div class="mside r"><div>${nameOf(x.b)}<br><b class="${x.db>0?'up':'down'}">${signed(x.db)}</b> ${lab(x.cb,x.mb,x.b)}</div>${stk(face(x.cb,x.ca),'mstk')}</div></div>`).join('');
   }
   if(r.type==='race'){
     const R=d.runners, n=R.length, lh=n<=6?58:n<=10?46:n<=14?38:30, myB=d.bets.find(b=>b.id===ME.pid);
@@ -1858,6 +1853,7 @@ function afterStage(){
   if(S.phase==='result'&&S.result.type==='react') runReactResult();
   if(S.phase==='result'&&S.result.type==='chest') runChestResult();
   if(S.phase==='play'&&S.game.type==='shell') runShellPlay();
+  if(S.phase==='play'&&S.game.type==='pd'){ PS_LAST=null; pdSigUpdate(); }
   if(S.phase==='play'&&pdIntro(S.game)){ const r=S.round; setTimeout(()=>{ if(S&&S.phase==='play'&&S.round===r) render(); },Math.max(50,S.game.params.t0-(Date.now()-clockOffset)+40)); }
   if(S.phase==='play'&&S.game.type==='plinko'&&$('#pktotal')){ SEL.pc='1'; pkTotal(); const a=$('#amt'); if(a) a.oninput=pkTotal; }
   if(S.phase==='play'&&S.game.type==='lotto'&&$('#lttotal')){ SEL.ln=[]; lottoTotal(); const a=$('#amt'); if(a) a.oninput=lottoTotal; }
@@ -1903,7 +1899,7 @@ function showStage(r){
       <div class="au-box" id="aubox"><img class="au-img" src="${STK.box}" alt=""><div class="au-val" id="auval">?</div></div></div>${SKIP}`;
   }
   if(r.type==='pd'){
-    const side=(id,c,dv,m)=>`<div class="pd-s">${avTag(id)}<div class="pd-n">${plainName(id)}</div>
+    const side=(id,c,dv,m)=>`<div class="pd-s">${avTag(id)}<div class="pd-n">${plainName(id)}</div><div class="pd-sig">📢 ${(d.sigs||{})[id]?((d.sigs||{})[id]==='C'?'"협력할게!"':'"배신할 거야"'):'신호 없음'}</div>
       <div class="fcard"><div class="fc front">?</div><div class="fc back ${c==='C'?'c':'b'}">${stk(c==='C'?'hugHeart':'angry','fimg')}<b>${c==='C'?'🤝 협력':'🗡️ 배신'}</b>${m?'<small>미제출</small>':''}</div></div>
       <div class="pd-d ${dv>0?'up':'down'}">${signed(dv)}</div></div>`;
     return `<div class="showcap" id="showcap">짝마다 동시에 카드를 뒤집습니다!</div>
